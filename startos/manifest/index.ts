@@ -2,12 +2,11 @@ import { setupManifest } from '@start9labs/start-sdk'
 import { long, short, torDescription } from './i18n'
 
 export const manifest = setupManifest({
-  id: 'bitcoind',
-  title: 'Bitcoin Knots (pre-RDTS)',
+  id: 'knots-prerdts',
+  title: 'Bitcoin Knots (pre-RDTS) Companion',
   license: 'MIT',
   donationUrl: null,
-  packageRepo:
-    'https://github.com/Start9Labs/bitcoin-knots-startos/tree/29.x-prerdts',
+  packageRepo: 'https://github.com/paulscode/knots-prerdts-startos',
   upstreamRepo: 'https://github.com/bitcoinknots/bitcoin',
   marketingUrl: 'https://bitcoinknots.org/',
   description: { short, long },
