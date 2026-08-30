@@ -3,7 +3,7 @@ import { long, short, torDescription } from './i18n'
 
 export const manifest = setupManifest({
   id: 'knots-prerdts',
-  title: 'Knots (pre-RDTS) Companion',
+  title: 'Bitcoin Knots (pre-RDTS) Companion',
   license: 'MIT',
   donationUrl: null,
   packageRepo: 'https://github.com/paulscode/knots-prerdts-startos',
