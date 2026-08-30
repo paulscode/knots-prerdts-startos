@@ -62,7 +62,7 @@ const mempoolReset = {
 const leavingRdtsFlavor = { reconsiderInvalidTips: true }
 
 export const current = VersionInfo.of({
-  version: '#knotsprerdts:29.3:25',
+  version: '#knotsprerdts:29.3:26',
   releaseNotes: {
     en_US: `- Services that index the chain, such as Electrum servers, can now retrieve full transaction details from a pruned node.
 - Blocks fetched from the network for another service are kept in memory, up to 64 MiB, so a repeat request is answered without going back out.`,
