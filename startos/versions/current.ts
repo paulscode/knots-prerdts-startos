@@ -65,15 +65,20 @@ export const current = VersionInfo.of({
   version: '#knotsprerdts:29.3:26',
   releaseNotes: {
     en_US: `- Services that index the chain, such as Electrum servers, can now retrieve full transaction details from a pruned node.
-- Blocks fetched from the network for another service are kept in memory, up to 64 MiB, so a repeat request is answered without going back out.`,
+- Blocks fetched from the network for another service are kept in memory, up to 64 MiB, so a repeat request is answered without going back out.
+- The service is now called "Bitcoin Knots (pre-RDTS) Companion", marking it as a companion node rather than an official package. Only the display name changed.`,
     es_ES: `- Los servicios que indexan la cadena, como los servidores Electrum, ya pueden obtener los detalles completos de una transacción desde un nodo podado.
-- Los bloques obtenidos de la red para otro servicio se mantienen en memoria, hasta 64 MiB, de modo que una petición repetida se responde sin volver a salir.`,
+- Los bloques obtenidos de la red para otro servicio se mantienen en memoria, hasta 64 MiB, de modo que una petición repetida se responde sin volver a salir.
+- El servicio ahora se llama «Bitcoin Knots (pre-RDTS) Companion», lo que lo identifica como un nodo acompañante y no como un paquete oficial. Solo cambió el nombre visible.`,
     de_DE: `- Dienste, die die Chain indizieren, etwa Electrum-Server, können jetzt vollständige Transaktionsdetails von einem beschnittenen Knoten abrufen.
-- Blöcke, die für einen anderen Dienst aus dem Netzwerk geholt wurden, bleiben im Speicher, bis zu 64 MiB, sodass eine erneute Anfrage ohne neuen Netzwerkzugriff beantwortet wird.`,
+- Blöcke, die für einen anderen Dienst aus dem Netzwerk geholt wurden, bleiben im Speicher, bis zu 64 MiB, sodass eine erneute Anfrage ohne neuen Netzwerkzugriff beantwortet wird.
+- Der Dienst heißt jetzt „Bitcoin Knots (pre-RDTS) Companion“ und ist damit als Begleitknoten statt als offizielles Paket erkennbar. Nur der Anzeigename hat sich geändert.`,
     pl_PL: `- Usługi indeksujące łańcuch, takie jak serwery Electrum, mogą teraz pobrać pełne szczegóły transakcji z przyciętego węzła.
-- Bloki pobrane z sieci na potrzeby innej usługi są przechowywane w pamięci, do 64 MiB, więc powtórne żądanie jest obsługiwane bez ponownego wyjścia do sieci.`,
+- Bloki pobrane z sieci na potrzeby innej usługi są przechowywane w pamięci, do 64 MiB, więc powtórne żądanie jest obsługiwane bez ponownego wyjścia do sieci.
+- Usługa nazywa się teraz „Bitcoin Knots (pre-RDTS) Companion”, co oznacza ją jako węzeł towarzyszący, a nie pakiet oficjalny. Zmieniła się tylko nazwa wyświetlana.`,
     fr_FR: `- Les services qui indexent la chaîne, tels que les serveurs Electrum, peuvent désormais récupérer les détails complets d'une transaction depuis un nœud élagué.
-- Les blocs récupérés sur le réseau pour un autre service sont conservés en mémoire, jusqu'à 64 Mio, de sorte qu'une requête répétée est satisfaite sans nouvel accès au réseau.`,
+- Les blocs récupérés sur le réseau pour un autre service sont conservés en mémoire, jusqu'à 64 Mio, de sorte qu'une requête répétée est satisfaite sans nouvel accès au réseau.
+- Le service s'appelle désormais « Bitcoin Knots (pre-RDTS) Companion », ce qui l'identifie comme un nœud compagnon et non comme un paquet officiel. Seul le nom affiché a changé.`,
   },
   migrations: {
     up: async ({ effects }) => {},
