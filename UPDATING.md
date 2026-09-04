@@ -4,7 +4,9 @@ The `bitcoind` image is built locally from `Dockerfile`: it downloads the Knots 
 
 ## Determining the upstream version
 
-This branch does **not** follow the latest Knots tag. The pin is `29.3.knots20260507` — the final release before RDTS shipped in `29.3.knots20260508`. Do not bump `VERSION` to a newer tag; the pin only moves if upstream ever publishes another non-RDTS release (not expected).
+This branch does **not** follow the latest Knots tag. The pin is `29.3.knots20260507` — the final release before RDTS shipped in `29.3.knots20260508`. Do not bump `VERSION` to a newer tag.
+
+**The pin is final, not merely unexpected to move.** The Knots developers have confirmed there will be no further non-RDTS release; that is why the upstream package this is built from left the Start9 release pipeline for the Community Registry (Start9-Community/bitcoin-knots-startos, 2026-09-03). There is no future tag to track here, so this section has nothing to check.
 
 - Current pin: `VERSION` build-arg under `images.bitcoind.source.dockerBuild.buildArgs` in `startos/manifest/index.ts` (paired with `PATH_VERSION = '29.x'`).
 

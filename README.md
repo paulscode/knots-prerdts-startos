@@ -12,7 +12,7 @@
 [Bitcoin Knots](https://github.com/bitcoinknots/bitcoin) is a derivative of Bitcoin Core with a larger set of policy controls and a built-in wallet surface. This flavor follows the same chain as Bitcoin Core: it is Knots without the BIP-110 (RDTS) softfork. Like the other bitcoind flavors it runs with an embedded I2P router beside it and, when pruned, a block-fetching RPC proxy in front.
 
 - **Upstream repo:** <https://github.com/bitcoinknots/bitcoin>
-- **Wrapper repo:** <https://github.com/Start9Labs/bitcoin-knots-startos/tree/29.x-prerdts>
+- **Wrapper repo this forks:** <https://github.com/Start9-Community/bitcoin-knots-prerdts-startos> (renamed from `Start9Labs/bitcoin-knots-startos`, branch `29.x-prerdts`, and moved to the Community Registry on 2026-09-03 now that the pin is final)
 
 ---
 
