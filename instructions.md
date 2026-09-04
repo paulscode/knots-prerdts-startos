@@ -1,4 +1,4 @@
-# Bitcoin Knots (pre-RDTS)
+# Bitcoin Knots (SHA256) Companion
 
 ## Documentation
 
@@ -11,11 +11,13 @@
 - An embedded **i2pd** sidecar that brings up I2P transport automatically — your node accepts inbound peers over I2P out of the box, with a separate **I2P Daemon Console** interface available when you turn the i2pd web console on.
 - An automatic Tor outbound proxy (your node reaches `.onion` peers without configuration); add a `.onion` to the Peer Interface to advertise yourself and accept inbound Tor connections too.
 - Disk-aware defaults: on disks smaller than 900 GB the package enables pruning and disables `txindex`; on larger disks you get a full archival node. The transition is transparent — pruned nodes route RPC through a small `btc-rpc-proxy` sidecar so port 8332 always serves RPC the same way, and it fetches any block your node has pruned from the peer-to-peer network on demand, so wallets and services see a node that behaves as though nothing were pruned.
-- Shared `bitcoind` package id with Bitcoin Core and the other Knots flavors — you can switch flavors without re-syncing the chain. During a BIP-110 (RDTS) chain split, switching additionally adjusts the node's recorded block verdicts automatically so it follows the chain the new flavor considers valid (see [Switching flavors during a chain split](#switching-flavors-during-a-chain-split)).
+- **A separate package from the official Bitcoin service, deliberately.** This is a companion node: its own id, its own ports, its own data. Install it *alongside* the official Bitcoin or Bitcoin Knots service, not instead of it, and run one node that enforces BIP-110 (RDTS) and one that does not at the same time.
+
+  This is the one place this service differs from the upstream package it is built from. That one shares the `bitcoind` package id with Bitcoin Core and the other Knots flavors, so switching between them keeps the synced chain. This one does not share it, so there is no switching and nothing is inherited: installing it starts its own Initial Block Download into its own volume. That is the cost of being able to run both at once.
 
 ## Getting set up
 
-Bitcoin Knots (pre-RDTS) starts and begins Initial Block Download (IBD) immediately on install.
+Bitcoin Knots (SHA256) Companion starts and begins Initial Block Download (IBD) immediately on install.
 
 1. Start the service. Open the Dashboard and watch the sync progress.
 2. If you want inbound clearnet peers, add a public IP or hostname on the **Peer Interface**. If you want inbound Tor peers, add a `.onion` there.
@@ -66,18 +68,33 @@ Every action above acts on the currently selected wallet, so if you run more tha
 - **Delete Peer List** — wipe `peers.dat` if peer discovery is misbehaving.
 - **Delete Transaction Index** / **Delete Coinstats Index** — clear a corrupted index so it can be rebuilt.
 
-### Switching flavors during a chain split
+### If the network splits over BIP-110 (RDTS)
 
-Bitcoin Core and all Bitcoin Knots flavors share the `bitcoind` package id and data volume, so switching flavors keeps the synced chain. However, bitcoind permanently records its verdict on every block it has seen, and those verdicts do not record _which_ rules produced them — a freshly switched binary trusts them as-is and never re-checks buried blocks on its own. If the network splits over BIP-110 (RDTS), that inheritance would silently pin your node to the previous flavor's chain. This flavor never enforces RDTS — it is the flavor you choose to _not_ enforce RDTS — and the relevant inheritance is corrected automatically at the first start after a switch:
+**This service never enforces RDTS.** That is the whole reason to run it: if the
+network ever splits over BIP-110, this node stays on the side that does not
+require it, whatever the node beside it is doing.
 
-- **Arriving at this flavor** (from the RDTS-enforcing Bitcoin Knots flavor): blocks that flavor rejected under RDTS remain marked invalid, which would stop this node from following the majority chain it should otherwise follow. This package clears those verdicts (`reconsiderblock` on every invalid chain tip) and follows the best chain valid under _its_ pre-RDTS rules. You get a "Chain Verdicts Reset" notification when anything was cleared.
-- **Leaving this flavor** (for the RDTS-enforcing Bitcoin Knots flavor): blocks this node connected were never checked against RDTS. There is nothing to do here — the enforcing flavor re-validates the RDTS-applicable block range itself on its first start after the switch.
+There is no "switching flavors" here, and that is worth stating because the
+upstream package this is built from does have it. There, Bitcoin Core and every
+Knots flavor share one package id and one data volume, so you can change flavor
+and keep the synced chain, and the package carries machinery to correct the
+block verdicts a node inherits when you do. This service has its own id and its
+own volume. Nothing is shared and nothing is inherited, so none of that applies:
+you run both nodes at once rather than swapping one for the other.
 
-Caveats that apply during an actual split:
+The verdict-correction machinery is still in the package and still runs, and on
+this service it has nothing to correct. It is kept rather than removed so that
+this package stays a thin fork of upstream, which is what lets it keep receiving
+upstream's fixes.
 
-- **Pruned nodes.** Reorganizing onto a previously rejected chain requires block data your node may have pruned away. If the needed range is gone, the package skips the in-place remedy (with a notification) and directs you to **Reindex Blockchain**, which on a pruned node re-downloads the entire chain. A pruned node also cannot reorganize deeper than its retained window (at least the most recent 288 blocks), so during a split significantly older than ~2 days a pruned node that switched sides may need that full re-download.
-- **Peers matter.** Clearing verdicts lets your node _accept_ the intended chain; actually following it requires peers that serve that chain's blocks. During a contentious split, add a trusted node on your preferred side via **Peer Settings → Add Nodes** if your node does not converge.
-- **Dependent services.** Correcting inherited verdicts can reorganize this node onto a different chain, and during a split that reorg can be deep. Services that depend on this node — especially Lightning (LND, Core Lightning) — are not safe against arbitrarily deep reorgs: a reorg past a channel's funding depth can force-close channels. After switching flavors during a split, verify your dependent services' state.
+Two things that do apply during an actual split:
+
+- **Peers matter.** Following a chain requires peers that serve it. During a
+  contentious split, add a trusted node on your preferred side via **Peer
+  Settings → Add Nodes** if your node does not converge.
+- **Dependent services.** Point services at the node whose chain they should
+  follow, and check afterwards. A service pointed at the wrong one of two nodes
+  is wrong about everything it reads, and nothing will tell it so.
 
 ### Advanced
 

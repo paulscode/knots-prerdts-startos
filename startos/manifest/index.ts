@@ -2,8 +2,18 @@ import { setupManifest } from '@start9labs/start-sdk'
 import { long, short, torDescription } from './i18n'
 
 export const manifest = setupManifest({
+  // The id stays `knots-prerdts`. It is identity, not a label: the registry
+  // indexes by (id, version, sighash) and there is no rename path, so changing
+  // it would strand every install rather than rename anything. The version
+  // flavor `#knotsprerdts` is fixed for the same reason.
+  //
+  // The title says SHA256 because that is what a user needs to know at the
+  // moment they are choosing between this and the BLAKE2b companion: which
+  // chain it follows. "pre-RDTS" describes how this build differs from the
+  // other Knots flavors, which is a second-order question and one the
+  // description can answer.
   id: 'knots-prerdts',
-  title: 'Bitcoin Knots (pre-RDTS) Companion',
+  title: 'Bitcoin Knots (SHA256) Companion',
   license: 'MIT',
   donationUrl: null,
   packageRepo: 'https://github.com/paulscode/knots-prerdts-startos',

@@ -2,7 +2,7 @@
   <img src="icon.svg" alt="Bitcoin Knots Logo" width="21%">
 </p>
 
-# Bitcoin Knots (pre-RDTS) on StartOS
+# Bitcoin Knots (SHA256) Companion on StartOS
 
 > Everything not listed in this document should behave the same as upstream
 > Bitcoin Knots. If a feature, setting, or behavior is not mentioned here, the

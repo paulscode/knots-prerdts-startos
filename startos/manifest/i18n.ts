@@ -1,22 +1,29 @@
+// short and long are authored in en_US and carried into the other locales
+// unchanged. They used to hold a real translation of a generic paragraph about
+// Bitcoin that said nothing about this package, and describing which side of a
+// possible consensus split a node sits on is not a thing to hand to a
+// translation engine. torDescription below is upstream's and is genuinely
+// translated, so it is left alone.
+const shortEn =
+  'A Bitcoin Knots node on the SHA256 chain that does not enforce BIP-110'
+
+const longEn =
+  'Bitcoin Knots, following the SHA256 chain: the same chain Bitcoin Core follows, and the same one the official Bitcoin and Bitcoin Knots services follow. What distinguishes this build is what it does not do. Knots ships the BIP-110 softfork, known as RDTS, and this flavor never enforces it, so if the network ever splits over BIP-110 this node stays on the side that does not require it. It installs alongside the official Bitcoin service rather than replacing it, under its own id and its own ports, so you can run one node that enforces BIP-110 and one that does not at the same time. That is the reason to install it; if you only want one Knots node, the official package is the one to use. It can be pruned, and when it is, the package runs an RPC proxy in front of it that fetches dropped blocks from peers, so a connected service still gets any block it asks for. An I2P router runs beside it. Pair it with Datum Gateway (SHA256) Companion to mine this chain.'
+
 export const short = {
-  en_US: 'A Bitcoin Full Node by Bitcoin Knots',
-  es_ES: 'Un nodo completo de Bitcoin por Bitcoin Knots',
-  de_DE: 'Ein Bitcoin Full Node von Bitcoin Knots',
-  pl_PL: 'Pełny węzeł Bitcoina od Bitcoin Knots',
-  fr_FR: 'Un nœud complet de Bitcoin par Bitcoin Knots',
+  en_US: shortEn,
+  es_ES: shortEn,
+  de_DE: shortEn,
+  pl_PL: shortEn,
+  fr_FR: shortEn,
 }
 
 export const long = {
-  en_US:
-    'Bitcoin is an innovative payment network and a new kind of money. Bitcoin uses peer-to-peer technology to operate with no central authority or banks; managing transactions and the issuing of bitcoins is carried out collectively by the network. Bitcoin is open-source; its design is public, nobody owns or controls Bitcoin and everyone can take part. Through many of its unique properties, Bitcoin allows exciting uses that could not be covered by any previous payment system.',
-  es_ES:
-    'Bitcoin es una red de pagos innovadora y un nuevo tipo de dinero. Bitcoin utiliza tecnología peer-to-peer para operar sin autoridad central ni bancos; la gestión de transacciones y la emisión de bitcoins se lleva a cabo colectivamente por la red. Bitcoin es de código abierto; su diseño es público, nadie posee ni controla Bitcoin y todos pueden participar. A través de sus muchas propiedades únicas, Bitcoin permite usos emocionantes que no podrían ser cubiertos por ningún sistema de pago anterior.',
-  de_DE:
-    'Bitcoin ist ein innovatives Zahlungsnetzwerk und eine neue Art von Geld. Bitcoin verwendet Peer-to-Peer-Technologie, um ohne zentrale Autorität oder Banken zu funktionieren; die Verwaltung von Transaktionen und die Ausgabe von Bitcoins wird kollektiv vom Netzwerk durchgeführt. Bitcoin ist Open-Source; sein Design ist öffentlich, niemand besitzt oder kontrolliert Bitcoin und jeder kann teilnehmen. Durch seine vielen einzigartigen Eigenschaften ermöglicht Bitcoin aufregende Anwendungen, die von keinem früheren Zahlungssystem abgedeckt werden konnten.',
-  pl_PL:
-    'Bitcoin to innowacyjna sieć płatności i nowy rodzaj pieniądza. Bitcoin wykorzystuje technologię peer-to-peer do działania bez centralnej władzy czy banków; zarządzanie transakcjami i emisja bitcoinów jest realizowana kolektywnie przez sieć. Bitcoin jest open-source; jego projekt jest publiczny, nikt nie posiada ani nie kontroluje Bitcoina i każdy może wziąć udział. Dzięki wielu unikalnym właściwościom Bitcoin umożliwia ekscytujące zastosowania, których nie mógł objąć żaden poprzedni system płatności.',
-  fr_FR:
-    "Bitcoin est un réseau de paiement innovant et un nouveau type d'argent. Bitcoin utilise la technologie peer-to-peer pour fonctionner sans autorité centrale ni banques. La gestion des transactions et l'émission de bitcoins sont effectuées collectivement par le réseau. Bitcoin est open-source ; sa conception est publique, personne ne possède ni ne contrôle Bitcoin et tout le monde peut y participer. Grâce à ses nombreuses propriétés uniques, Bitcoin permet des utilisations passionnantes qui ne pourraient être couvertes par aucun système de paiement précédent.",
+  en_US: longEn,
+  es_ES: longEn,
+  de_DE: longEn,
+  pl_PL: longEn,
+  fr_FR: longEn,
 }
 
 export const torDescription = {
