@@ -95,7 +95,7 @@ Three models, and ownership is decided per key rather than per file: some keys a
 | `blockfilterindex`                                                                   | off                          | `basic`                                          | Dependents need BIP158 filters         |
 | `dbcache`                                                                            | 450 MiB                      | 25% of system RAM, capped at 5120 MiB            | Faster initial sync                    |
 | `dbbatchsize`                                                                        | 16 MiB                       | Scaled to system RAM, between 16 and 32 MiB      | Faster initial sync                    |
-| `prune`                                                                              | 0 (archival)                 | The 550 MiB floor, on disks below roughly 900 GB | Fit the chain to the disk              |
+| `prune`                                                                              | 0 (archival)                 | 5000 MiB on every fresh install                  | A companion should not hold a second full chain |
 | `i2psam`                                                                             | off                          | The embedded I2P router's SAM address            | I2P peering without a separate service |
 | `assumevalid`                                                                        | A hash built into the binary | A hash pinned by this package                    | —                                      |
 
@@ -155,7 +155,7 @@ Block and transaction notifications are two interfaces rather than one because b
 
 There is no setup wizard, no credential to enter, and no task raised at install — the node begins its Initial Block Download as soon as it is started. What install does do is size two settings to the hardware it landed on.
 
-1. **Disk-aware sizing.** On a disk below roughly 900 GB, `prune` is seeded to the 550 MiB floor and the Transaction Index field is disabled in the form; above it, the node is archival. Pruning also forces `txindex` off whenever it is on.
+1. **Pruned on every fresh install**, seeded to 5000 MiB by `init/seedFiles.ts`, where the official package this forks seeds the 550 MiB floor only on a disk below roughly 900 GB and is archival above it. The difference is what the two are for: that one is meant to be your node, this one sits beside it, and a second full copy of the same chain is the outcome almost nobody installing a companion wants. The Pruning field's minimum stays disk-aware, so 0 is offered only where the disk could hold an archival node. Pruning also forces `txindex` off whenever it is on, and disables the Transaction Index field in the form.
 2. **Seeded divergences.** The ZeroMQ publishers and `blockfilterindex` are switched on because dependent services need them, `i2psam` points at the embedded router, `dbcache` and `dbbatchsize` are scaled to system RAM for the duration of the sync, and `assumevalid` is pinned.
 3. **Every init repairs all three models.** Install, update, and restore each merge `store.json`, `i2pd.conf`, and `bitcoin.conf`, which fills in missing keys and corrects invalid ones. An update is therefore how a new enforced value reaches an existing install.
 4. **`externalip` is derived, not asked for.** It follows whatever addresses are published on the peer interface, so adding a Tor address there is what makes the node advertise it and what turns Tor into a running dependency.

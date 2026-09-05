@@ -48,6 +48,26 @@ const iniBoolean = z
   .catch(undefined)
 
 export const minPrune = 550
+
+/**
+ * Blocks to keep, in MiB, on a fresh install.
+ *
+ * Not bitcoind's 550 MiB floor, which is the smallest value it accepts rather
+ * than a size to run on. Raising it costs disk and buys fewer blocks for a
+ * dependent indexer to re-fetch through the proxy.
+ *
+ * This package prunes on every fresh install, where the official package it
+ * forks prunes only on a disk below `archivalMin`. The difference is what the
+ * two are for: that one is meant to be your node, and this one is a companion
+ * that sits beside it, so a second full copy of the same chain is the outcome
+ * almost nobody installing it wants. Pruning costs a dependent nothing here,
+ * because main.ts puts btc-rpc-proxy in front of the node whenever this is
+ * non-zero, and the proxy fetches a pruned block from peers on demand.
+ *
+ * Set the Pruning field to 0 for a full archival node. The field's minimum
+ * stays disk-aware, so archival is offered only where the disk could hold it.
+ */
+export const defaultPruneMib = 5000
 export const minConnections = 40
 
 const validNets = ['ipv4', 'ipv6', 'onion', 'i2p'] as const
@@ -676,7 +696,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
       ),
       placeholder: null,
       required: false,
-      default: smallDisk ? minPrune : 0,
+      default: defaultPruneMib,
       integer: true,
       units: 'MiB',
       min: smallDisk ? minPrune : 0,

@@ -1,11 +1,9 @@
 import {
-  archivalMin,
   bitcoinConfFile,
   defaultDatacarriercost,
   defaultDbbatchsize,
   defaultDbcache,
-  diskUsage,
-  minPrune,
+  defaultPruneMib,
 } from '../fileModels/bitcoin.conf'
 import { i2pdConfFile } from '../fileModels/i2pd.conf'
 import { storeJson } from '../fileModels/store.json'
@@ -27,7 +25,13 @@ export const seedFiles = sdk.setupOnInit(async (effects, kind) => {
       dbbatchsize: defaultDbbatchsize(),
       natpmp: false,
       datacarriercost: defaultDatacarriercost,
-      prune: (await diskUsage()).total < archivalMin ? minPrune : 0,
+      // Pruned on every fresh install, where the official package this forks
+      // prunes only on a small disk. This node is a companion meant to run
+      // beside your main one, so a second full copy of the same chain is the
+      // outcome almost nobody wants. Pruning costs a dependent nothing, because
+      // main.ts runs btc-rpc-proxy in front of the node whenever this is
+      // non-zero. Existing installs keep whatever they already have.
+      prune: defaultPruneMib,
       raw: {
         i2psam: i2PSamAddress,
       },
