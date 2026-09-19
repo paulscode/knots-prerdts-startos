@@ -2,30 +2,26 @@
 FROM debian:stable-slim AS builder
 
 ARG VERSION
-ARG PATH_VERSION
 ARG TARGETPLATFORM
 
 WORKDIR /build
 
 RUN apt-get update && apt-get install -y wget pgp ca-certificates
 
-# Pinned Bitcoin Knots release signers. Each has signed recent Knots
-# 29.x releases. Build requires REQUIRED_QUORUM DISTINCT signers from
-# this set; signatures from non-pinned signers are ignored. Adding a
-# signer here is an explicit trust decision — do not delegate to
-# upstream key directories or keyservers.
+# Pinned Bitcoin Knots SHA256 release signer: the maintainer's key, which
+# signs SHA256SUMS on an air-gapped machine (framework docs/SIGNING.md). One
+# signer, so the quorum is 1. The key file is a copy of the framework's
+# committed public key (config/keys/maintainer.asc, also published at
+# https://paulscode.com/.well-known/paulscode.asc); adding a signer here is
+# an explicit trust decision — do not delegate to key directories or
+# keyservers.
 #
 # This list must stay in lockstep with assets/release-keys/: the build
 # asserts the imported keyring is exactly this set, so a key file with no
 # fingerprint here — or a fingerprint here with no key file — fails the
 # build rather than silently widening or narrowing who can sign.
-ENV PINNED_FINGERPRINTS="\
-1A3E761F19D2CC7785C5502EA291A2C45D0C504A \
-1D5889CB9E0564C154E18BB512EC9519DB43CC27 \
-658E64021E5793C6C4E15E45C2E581F5B998F30E \
-95636F3538D9262765AB29BEE952E584CA8C0F45 \
-DAED928C727D3E613EC46635F5073C4F4882FFFC"
-ENV REQUIRED_QUORUM=3
+ENV PINNED_FINGERPRINTS="FF76D4843EBD7FA06D92DC0CB8AB7B8E7E280E1A"
+ENV REQUIRED_QUORUM=1
 
 RUN case "${TARGETPLATFORM}" in \
       "linux/amd64")   echo "bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz"    > /tarball-name ;; \
@@ -34,9 +30,12 @@ RUN case "${TARGETPLATFORM}" in \
       *) echo "Unsupported platform: ${TARGETPLATFORM}" && exit 1 ;; \
     esac
 
-RUN wget https://bitcoinknots.org/files/${PATH_VERSION}/${VERSION}/$(cat /tarball-name) \
-         https://bitcoinknots.org/files/${PATH_VERSION}/${VERSION}/SHA256SUMS.asc \
-         https://bitcoinknots.org/files/${PATH_VERSION}/${VERSION}/SHA256SUMS
+# Release assets live on the GitHub Release of the product repo, flat under the
+# tag (no <major>.x/<version>/ path as on bitcoinknots.org). Names follow the
+# Core/Knots convention, so nothing else here had to change.
+RUN wget https://github.com/paulscode/knots-sha256/releases/download/v${VERSION}/$(cat /tarball-name) \
+         https://github.com/paulscode/knots-sha256/releases/download/v${VERSION}/SHA256SUMS.asc \
+         https://github.com/paulscode/knots-sha256/releases/download/v${VERSION}/SHA256SUMS
 
 COPY assets/release-keys/ /tmp/release-keys/
 
@@ -51,9 +50,10 @@ COPY assets/release-keys/ /tmp/release-keys/
 #
 # A VALIDSIG alone is not enough to count: GnuPG also emits one for a signature
 # by an expired or revoked key, pairing it with EXPKEYSIG/REVKEYSIG instead of
-# GOODSIG. Knots releases carry such a signature today, and counting it would be
-# laxer than what this replaced, so the walk below only counts a VALIDSIG whose
-# signature reported GOODSIG.
+# GOODSIG. Counting one would be laxer than intended, so the walk below only
+# counts a VALIDSIG whose signature reported GOODSIG. With a single pinned
+# signer the quorum is trivially 1; the machinery is kept intact so a second
+# signer can be added by editing PINNED_FINGERPRINTS and REQUIRED_QUORUM.
 #
 # The keyring is asserted equal to the pinned primaries first, so the count can
 # be taken over the keyring as a whole: a stray key dropped into

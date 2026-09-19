@@ -1,0 +1,26 @@
+name: check
+# Type-check and unit tests only. Releases are not built here: the workspace
+# release.sh builds the s9pk, SHA256SUMS is signed on an air-gapped machine,
+# and `release.sh --publish` cuts the GitHub Release (see UPDATING.md).
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - name: pinned key matches the Dockerfile and carries no secret material
+        run: |
+          set -e
+          export GNUPGHOME=$(mktemp -d)
+          gpg --batch --import assets/release-keys/*.asc
+          gpg --batch --list-secret-keys | grep -q . && { echo "secret key material committed!"; exit 1; }
+          for fp in $(sed -n 's/^ENV PINNED_FINGERPRINTS="\(.*\)"/\1/p' Dockerfile); do
+            gpg --batch --with-colons --list-keys | grep -q "^fpr:::::::::$fp:" || { echo "no key file for pinned fingerprint $fp"; exit 1; }
+            [ -f "assets/release-keys/$fp.asc" ] || { echo "key file for $fp is not named by its fingerprint"; exit 1; }
+          done
+          echo "pinned key OK"

@@ -1,21 +1,22 @@
-# Bitcoin Knots (pre-RDTS)
+# Bitcoin Knots SHA256
 
 ## Documentation
 
 - [Start9 Bitcoin guides](https://docs.start9.com/bitcoin-guides/) — operating-a-Bitcoin-node guides curated for StartOS users (connecting wallets, dependent services, common workflows).
-- [About Bitcoin Knots](https://bitcoinknots.org/#about) — upstream project's description of how Knots differs from Bitcoin Core.
+- [Bitcoin Knots SHA256](https://github.com/paulscode/knots-sha256) — the node this package installs: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core for the SHA256 chain, consensus-identical to Bitcoin Core. Releases and their signed `SHA256SUMS` are published there.
+- [About Bitcoin Knots](https://bitcoinknots.org/#about) — the original project's description of how Knots' policy controls differ from Bitcoin Core. From 29.4 Bitcoin Knots enforces BIP-110 (RDTS) and follows a different chain; this package does not.
 
 ## What you get on StartOS
 
-- A full Bitcoin Knots node with three interfaces: **RPC Interface** (JSON-RPC for wallets and dependent services), **Peer Interface** (the network port other nodes connect to), and **ZeroMQ Interface** (block/transaction notifications, when ZMQ is enabled).
+- A full Bitcoin Knots SHA256 node — Bitcoin Core 31.x consensus with Knots' policy controls and defaults — with three interfaces: **RPC Interface** (JSON-RPC for wallets and dependent services), **Peer Interface** (the network port other nodes connect to), and **ZeroMQ Interface** (block/transaction notifications, when ZMQ is enabled).
 - An embedded **i2pd** sidecar that brings up I2P transport automatically — your node accepts inbound peers over I2P out of the box, with a separate **I2P Daemon Console** interface available when you turn the i2pd web console on.
 - An automatic Tor outbound proxy (your node reaches `.onion` peers without configuration); add a `.onion` to the Peer Interface to advertise yourself and accept inbound Tor connections too.
 - Disk-aware defaults: on disks smaller than 900 GB the package enables pruning and disables `txindex`; on larger disks you get a full archival node. The transition is transparent — pruned nodes route RPC through a small `btc-rpc-proxy` sidecar so port 8332 always serves RPC the same way, and it fetches any block your node has pruned from the peer-to-peer network on demand, so wallets and services see a node that behaves as though nothing were pruned.
-- Shared `bitcoind` package id with Bitcoin Core — you can switch flavors without re-syncing the chain.
+- Shared `bitcoind` package id with Bitcoin Core — you can switch here from Bitcoin Core or Bitcoin Knots (pre-RDTS) without re-syncing the chain. Bitcoin Knots (RDTS) follows a different chain, so switching to or from it is not offered.
 
 ## Getting set up
 
-Bitcoin Knots (pre-RDTS) starts and begins Initial Block Download (IBD) immediately on install.
+Bitcoin Knots SHA256 starts and begins Initial Block Download (IBD) immediately on install.
 
 1. Start the service. Open the Dashboard and watch the sync progress.
 2. If you want inbound clearnet peers, add a public IP or hostname on the **Peer Interface**. If you want inbound Tor peers, add a `.onion` there.
@@ -23,7 +24,7 @@ Bitcoin Knots (pre-RDTS) starts and begins Initial Block Download (IBD) immediat
 
 > Initial Block Download takes hours to days depending on hardware and network. The node is functional immediately but RPC calls that depend on chain state will return partial results until sync completes.
 
-## Using Bitcoin Knots
+## Using Bitcoin Knots SHA256
 
 ### RPC
 

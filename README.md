@@ -1,18 +1,24 @@
 <p align="center">
-  <img src="icon.svg" alt="Bitcoin Knots Logo" width="21%">
+  <img src="icon.png" alt="Bitcoin Knots Logo" width="21%">
 </p>
 
-# Bitcoin Knots (pre-RDTS) on StartOS
+# Bitcoin Knots SHA256 on StartOS
 
 > Everything not listed in this document should behave the same as upstream
-> Bitcoin Knots. If a feature, setting, or behavior is not mentioned here, the
-> upstream documentation is accurate and fully applicable — see the
-> Documentation section of `instructions.md` for links.
+> Bitcoin Knots SHA256, which itself behaves like Bitcoin Knots did up to
+> 29.3.knots20260507 on the SHA256 chain. If a feature, setting, or behavior is
+> not mentioned here, the upstream documentation is accurate and fully
+> applicable — see the Documentation section of `instructions.md` for links.
 
-[Bitcoin Knots](https://github.com/bitcoinknots/bitcoin) is a derivative of Bitcoin Core with a larger set of policy controls and a built-in wallet surface. This flavor follows the same chain as Bitcoin Core: it is Knots without the BIP-110 (RDTS) softfork. Like the other bitcoind flavors it runs with an embedded I2P router beside it and, when pruned, a block-fetching RPC proxy in front.
+[Bitcoin Knots SHA256](https://github.com/paulscode/knots-sha256) is Bitcoin Knots' policy patch series maintained on top of Bitcoin Core for the SHA256 chain — the chain Bitcoin Core follows — after Bitcoin Knots itself adopted BIP-110 (RDTS) and BLAKE2b proof-of-work from 29.4. Consensus is never modified: the node accepts exactly the blocks Bitcoin Core accepts. What it adds is Knots' larger set of relay and mining policy controls with Knots' defaults. This flavor is the successor of Bitcoin Knots (pre-RDTS), which is pinned forever to the last non-RDTS Knots release; that release is where this series inherits from. Like the other bitcoind flavors it runs with an embedded I2P router beside it and, when pruned, a block-fetching RPC proxy in front.
 
-- **Upstream repo:** <https://github.com/bitcoinknots/bitcoin>
-- **Wrapper repo:** <https://github.com/Start9-Community/bitcoin-knots-prerdts-startos>
+- **Upstream repo:** <https://github.com/paulscode/knots-sha256> (releases, signed `SHA256SUMS`)
+- **Wrapper repo:** <https://github.com/paulscode/knots-sha256-startos>
+- **Base:** the `master` branch of <https://github.com/Start9-Community/bitcoin-knots-prerdts-startos> (remote `upstream`); generic fixes are pulled from there.
+
+### Relationship to the release process
+
+Releases of the node are produced by a private framework repository (run-book, port tooling, consensus gate, air-gapped signing) and published as GitHub Releases on the upstream repo above, one per Bitcoin Knots SHA256 version (rc and final). This package tracks them one to one: `VERSION` in `startos/manifest/index.ts` is the release's full version string, and the `Dockerfile` verifies that release's `SHA256SUMS.asc` against the maintainer's key in `assets/release-keys/`. The framework never hands this package a binary. Procedure: `UPDATING.md`.
 
 ---
 
@@ -35,7 +41,7 @@
 
 ## Image and Container Runtime
 
-The node binary does not come from a registry. The repo's own `Dockerfile` downloads the upstream release tarball from `bitcoinknots.org`, verifies it, and copies `bitcoind` and `bitcoin-cli` onto a slim Debian base. Three registry images run alongside it.
+The node binary does not come from a registry. The repo's own `Dockerfile` downloads the release tarball from the upstream repo's GitHub Release (`https://github.com/paulscode/knots-sha256/releases/download/v<VERSION>/`), verifies it, and copies `bitcoind` and `bitcoin-cli` onto a slim Debian base. Three registry images run alongside it.
 
 | Property      | Value                                                                       |
 | ------------- | --------------------------------------------------------------------------- |
@@ -43,7 +49,7 @@ The node binary does not come from a registry. The repo's own `Dockerfile` downl
 | Architectures | x86_64, aarch64, riscv64                                                    |
 | Entrypoint    | `bitcoind`                                                                  |
 
-Verification is a signer quorum rather than a single trusted key: `SHA256SUMS.asc` must carry good signatures from a quorum of **distinct** signers holding keys committed under `assets/release-keys/`, counted by primary fingerprint so that one signer's subkeys cannot vote twice, and the keyring is asserted equal to the pinned set so a stray key cannot join the count. Only then is the tarball checked against `SHA256SUMS`. The runtime image adds `curl` (the snapshot download shells out to it), `jq`, `yq`, `tini`, and `e2fsprogs`.
+Verification pins the maintainer's key: `SHA256SUMS.asc` must carry a good signature from the key committed under `assets/release-keys/` (fingerprint `FF76D4843EBD7FA06D92DC0CB8AB7B8E7E280E1A`, the same key published at <https://paulscode.com/.well-known/paulscode.asc>), and the keyring is asserted equal to the pinned set so a stray key cannot be slipped in. The quorum machinery inherited from the Knots package is kept intact with `REQUIRED_QUORUM=1`, so a second signer can be added by editing `PINNED_FINGERPRINTS` and the quorum together. Only then is the tarball checked against `SHA256SUMS`. Releases are signed on an air-gapped machine; the online side never holds a secret key. The runtime image adds `curl` (the snapshot download shells out to it), `jq`, `yq`, `tini`, and `e2fsprogs`.
 
 | Subcontainer   | Image                   | Lifetime                 | Purpose                                                                                                                                                                                                                                    |
 | -------------- | ----------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -85,7 +91,7 @@ Three models, and ownership is decided per key rather than per file: some keys a
 
 **Knots exposes far more policy than Core does**, and this package models all of it: parasite and token rejection, bare pubkey, anchor and datacarrier permissions, script and legacy-sigop limits, datacarrier cost, ancestor and descendant limits, dust relay fee, ephemeral and unknown-witness handling, mempool replacement and TRUC policy, coin-age and maturity relay floors, and block template sizing. Each is a plain configurable key with Knots' own default when unset.
 
-`consensusrules` is modelled but not exposed: this build never enforces RDTS, so the key is modelled as **must be absent** — a value on disk is discarded on the next write rather than honoured.
+`consensusrules` is modelled but not exposed: this build has no RDTS code at all, so the key is modelled as **must be absent** — a value left on disk by a Knots flavor is discarded on the next write rather than passed to a binary that would not recognise it.
 
 **Seeded at install and then yours.** Install overrides these and nothing else:
 
@@ -243,7 +249,7 @@ One task, and it exists only to report a failure that happens after the action t
 
 `important` rather than `critical`, deliberately: a node without a snapshot syncs normally, so nothing should be blocked. The task can return — a second failed attempt raises it again with the new error.
 
-**There is no RDTS opt-in task here.** That belongs to the RDTS flavor, which follows a different chain; this one does not.
+**There is no RDTS opt-in task here.** That belongs to the RDTS flavor, which follows a different chain; this one does not, and cannot be switched to or from it.
 
 ## Health Checks
 
@@ -297,9 +303,9 @@ Both volumes are copied wholesale — `sdk.Backups.ofVolumes('main', 'i2pd')`. T
 7. **i2pd tuning is not in the StartOS UI.** Log level, bandwidth class, transit share, tunnel limits, and the web console are edited in `i2pd.conf` on the `i2pd` volume. The embedded router relays nothing for the I2P network (`notransit=true`); run the standalone i2pd service if you want to contribute transit capacity.
 8. **Shutdown is allowed five minutes** to flush the databases before SIGKILL.
 9. **The I2P router is emulated on riscv64**, which has no upstream i2pd image.
-10. **This flavor never enforces RDTS.** It follows the same chain as Bitcoin Core; the RDTS flavor is a separate package and a separate chain.
+10. **This flavor never enforces RDTS and does not mine or validate BLAKE2b proof-of-work.** It follows the same chain as Bitcoin Core; the RDTS flavor is a separate package and a separate chain, and no migration exists in either direction. Switching from Bitcoin Core or Bitcoin Knots (pre-RDTS) keeps the synced chain.
 11. **Every Wallet action disappears when `disablewallet` is on**, and all of them require the service to be running.
-12. **The repo maintains one branch per flavor**, each published as the same `bitcoind` package. Release notes and pinned upstream versions differ between them.
+12. **This repo is one flavor.** The Knots packages it was forked from maintain one branch per flavor; here `master` of the pre-RDTS package is the `upstream` remote, and only this flavor is published from this repo.
 
 ---
 

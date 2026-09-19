@@ -1,37 +1,65 @@
 # Updating the upstream version
 
-**There will be no further upstream version.** Bitcoin Knots ships RDTS from
-`29.3.knots20260508` on, and the Knots developers have confirmed no further
-non-RDTS release will be cut. `29.3.knots20260507` is the last one, and this
-package is pinned to it permanently.
+This package tracks Bitcoin Knots SHA256 releases one to one: every release of
+the node (rc and final) gets a wrapper release. The node's releases are cut by
+the private framework repo (`/mnt/Black/knots-sha256-framework`, run-book
+`docs/RUNBOOK.md` §8–§9) and published as GitHub Releases on
+<https://github.com/paulscode/knots-sha256>. Only start here once
+`tools/release.sh publish` and `tools/verify-published.sh` are green there.
 
-Nothing below is a bump procedure. It is what a rebuild of the pinned release
-still depends on.
+## Determining the upstream version
 
-## The pin
+The framework prints it: `tools/cfg version` → `version_string`, e.g.
+`31.1.knots-sha256.20260918` (Bitcoin Core base, then the Knots SHA256 series
+date; rcs append `rcN`). The GitHub Release is tagged `v<version_string>` and
+carries `bitcoin-<version_string>-<host>.tar.gz`, `SHA256SUMS`, `SHA256SUMS.asc`.
 
-`VERSION` build-arg under `images.bitcoind.source.dockerBuild.buildArgs` in
-`startos/manifest/index.ts`, paired with `PATH_VERSION = '29.x'`.
+- Current pin: `VERSION` build-arg under `images.bitcoind.source.dockerBuild.buildArgs`
+  in `startos/manifest/index.ts`. There is no `PATH_VERSION`: release assets sit
+  flat under the tag.
 
-The `bitcoind` image is built locally from `Dockerfile`: it downloads the
-release tarball from `bitcoinknots.org/files/${PATH_VERSION}/${VERSION}/` and
-verifies `SHA256SUMS.asc` against a pinned 3-of-5 quorum of Knots release
-signers (keys in `assets/release-keys/`, fingerprints in
-`PINNED_FINGERPRINTS`). There is no `dockerTag` — the version lives in
-`buildArgs`. If upstream retires that download path or rotates those keys, a
-rebuild breaks and needs `PINNED_FINGERPRINTS` and `assets/release-keys/`
-refreshed.
+## Applying the bump
 
-## The frozen `satisfies` values
+1. `startos/manifest/index.ts`: set `VERSION` to the new version string.
+2. `startos/versions/current.ts`:
+   - `version`: `#knotssha:<core major.minor>:<N>`. The middle part is the
+     Bitcoin Core base of the release (`31.1`); it changes when the base does.
+     `N` is this package's revision and bumps on every wrapper release, back to
+     `0` when the base changes.
+   - `releaseNotes`: what changed for a StartOS user (the node's own release
+     notes live in the product repo; link rather than paste).
+   - `.satisfies(...)`: the Bitcoin Core revisions this package stands in for
+     when a dependent's `versionRange` is evaluated. Copy the official
+     `bitcoin-core-startos` current branch's `version` and its `.satisfies`
+     list; if Core has bumped its `:N` since the last wrapper release, raise
+     them here or dependents that raised their floor stop accepting this
+     flavor.
+   - `migrations.other`: if the Core base changed major (31 → 32), review the
+     `down` cleanups against what the official Core package removes on its own
+     downgrade path, and add the new Core major key.
+   - Move the previous version file under `startos/versions/` and list it in
+     `versions/index.ts` `other` the first time a second version exists.
+3. Signing key: `assets/release-keys/<FPR>.asc` must be byte-identical to the
+   framework's `config/keys/maintainer.asc`, and `PINNED_FINGERPRINTS` in the
+   `Dockerfile` must list exactly that fingerprint. The framework's
+   `tools/keys-check.sh` compares the committed key with its published copy; a
+   key rotation is a framework decision first and a wrapper change second.
+4. Build, sign, publish, from the workspace directory above this repo:
+   ```
+   ./release.sh knots-sha256-startos            # builds the universal s9pk, writes builds/<ver>/SHA256SUMS
+   # sign SHA256SUMS on the air-gapped machine, drop SHA256SUMS.asc beside it
+   ./release.sh knots-sha256-startos --publish  # verifies, cuts the GitHub Release on this repo
+   ```
+   CI (`.github/workflows/check.yml`) type-checks and runs the unit tests only;
+   it never builds or publishes a package.
 
-The current version file carries `.satisfies('29.4:15')` and
-`.satisfies('28.4:28')` — the Bitcoin Core revisions this package stands in for
-when a dependent's `versionRange` is evaluated. They no longer track Core.
+## Architectures
 
-The consequence is worth knowing: as Bitcoin Core keeps bumping its `:N`, a
-dependent that raises its floor past those two revisions stops being
-satisfiable by this package. Dependents drop off one at a time rather than all
-at once, and nothing short of a release fixes it.
+The manifest declares `x86_64`, `aarch64` and `riscv64` for the node image, and
+the `Dockerfile` maps each to the Guix host name. Confirm the release actually
+carries all three `bitcoin-<version>-<host>.tar.gz` files before building; drop
+an arch from the manifest rather than shipping a package that fails to build on
+it.
 
 ## The i2pd image
 
@@ -41,5 +69,5 @@ tag can reword those messages; that fails open — a reworded family passes the
 filter and the log flood returns — rather than dropping evidence, but it means
 an i2pd bump owes a re-validation: run `npm test`, then watch a few hours of
 live service logs and fold any reworded families back into the list (and its
-test corpus). The same filter and test ship in `bitcoin-core-startos`, which
-maintains its own copy.
+test corpus). The same filter and test ship in `bitcoin-core-startos` and the
+Knots packages, which maintain their own copies.
