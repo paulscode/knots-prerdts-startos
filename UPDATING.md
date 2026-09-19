@@ -1,14 +1,26 @@
 # Updating the upstream version
 
-The `bitcoind` image is built locally from `Dockerfile`: it downloads the Knots release tarball from `bitcoinknots.org/files/${PATH_VERSION}/${VERSION}/` and verifies `SHA256SUMS.asc` against a pinned 3-of-5 quorum of Knots release signers (keys in `assets/release-keys/`, fingerprints in `PINNED_FINGERPRINTS`). There is no `dockerTag` — the version lives in `buildArgs`. This branch is the **pre-RDTS variant**: it is pinned to the last Bitcoin Knots release without RDTS (`29.3.knots20260507`) and does **not** track newer Knots releases — every release from `29.3.knots20260508` on includes RDTS and belongs on the `29.x` sibling, not here.
+This package installs Bitcoin Knots SHA256 (Bitcoin Knots' patch series maintained on top of Bitcoin Core for the SHA256
+chain) and is kept **in lock-step with the drop-in package** `knots-sha256-startos`: it is that package plus an
+enumerated companion delta (icon, identity, own ports, prune-by-default, ZeroMQ off, its own version chain). The
+framework that produces the releases documents the procedure (RUNBOOK §9.1c) and enforces the delta
+(`tools/companion-check.py`); the one-time conversion from the earlier pinned build is its Appendix E.
 
-## Determining the upstream version
+## Current pin
 
-This branch does **not** follow the latest Knots tag. The pin is `29.3.knots20260507` — the final release before RDTS shipped in `29.3.knots20260508`. Do not bump `VERSION` to a newer tag.
+`VERSION` build-arg under `images.bitcoind.source.dockerBuild.buildArgs` in `startos/manifest/index.ts` — still
+`29.3.knots20260507` until the first Bitcoin Knots SHA256 release; from then on always the same release string as the
+drop-in package.
 
-**The pin is final, not merely unexpected to move.** The Knots developers have confirmed there will be no further non-RDTS release; that is why the upstream package this is built from left the Start9 release pipeline for the Community Registry (Start9-Community/bitcoin-knots-startos, 2026-09-03). There is no future tag to track here, so this section has nothing to check.
+## Applying a bump (every Bitcoin Knots SHA256 release)
 
-- Current pin: `VERSION` build-arg under `images.bitcoind.source.dockerBuild.buildArgs` in `startos/manifest/index.ts` (paired with `PATH_VERSION = '29.x'`).
+1. `git fetch dropin && git merge dropin/main` (remote `dropin` = knots-sha256-startos); resolve conflicts only in
+   delta files, keeping this package's identity, ports and defaults.
+2. `VERSION` = the release string of the drop-in; `startos/versions/current.ts`: bump `#knotsprerdts:<core>:<N>` — keep
+   the `#knotsprerdts` flavor (Datum Gateway (SHA256) Companion depends on `>=#knotsprerdts:29.3:25`).
+3. `npm run check`; framework `tools/companion-check.py --startos` must PASS.
+4. Workspace `./release.sh knots-prerdts-startos`, sign `SHA256SUMS` on the air-gapped machine, `--publish`, then
+   publish to the registry (`start9-store/start9-040`: `make publish PKG=<this repo>/builds`).
 
 ## The i2pd image
 

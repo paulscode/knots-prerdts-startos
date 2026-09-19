@@ -5,10 +5,10 @@
 // translation engine. torDescription below is upstream's and is genuinely
 // translated, so it is left alone.
 const shortEn =
-  'A Bitcoin Knots node on the SHA256 chain that does not enforce BIP-110'
+  'A pruned Bitcoin Knots node for the SHA256 chain, to run beside your main node'
 
 const longEn =
-  'Bitcoin Knots, following the SHA256 chain: the same chain Bitcoin Core follows, and the same one the official Bitcoin and Bitcoin Knots services follow. What distinguishes this build is what it does not do. Knots ships the BIP-110 softfork, known as RDTS, and this flavor never enforces it, so if the network ever splits over BIP-110 this node stays on the side that does not require it. It installs alongside the official Bitcoin service rather than replacing it, under its own id and its own ports, so you can run one node that enforces BIP-110 and one that does not at the same time. That is the reason to install it; if you only want one Knots node, the official package is the one to use. It can be pruned, and when it is, the package runs an RPC proxy in front of it that fetches dropped blocks from peers, so a connected service still gets any block it asks for. An I2P router runs beside it. Pair it with Datum Gateway (SHA256) Companion to mine this chain.'
+  'Bitcoin Knots for the SHA256 chain — the chain Bitcoin Core follows — as a second node beside your existing Bitcoin or Bitcoin Knots service. It has its own id, its own ports and its own data, and it is pruned by default so both nodes fit on one machine. Run it when you want a node with Knots\' policy defaults without replacing the node your other services depend on, or pair it with Datum Gateway (SHA256) Companion to mine this chain. Pruned nodes still serve dependents: an RPC proxy in front of the node fetches any pruned block from peers on demand. An I2P router runs beside it. It follows Bitcoin Knots SHA256 releases (Bitcoin Knots\' patch series maintained on top of Bitcoin Core for the SHA256 chain) in lock-step with the drop-in Bitcoin Knots SHA256 package.'
 
 export const short = {
   en_US: shortEn,

@@ -3,7 +3,8 @@
 ## Documentation
 
 - [Start9 Bitcoin guides](https://docs.start9.com/bitcoin-guides/) — operating-a-Bitcoin-node guides curated for StartOS users (connecting wallets, dependent services, common workflows).
-- [About Bitcoin Knots](https://bitcoinknots.org/#about) — upstream project's description of how Knots differs from Bitcoin Core.
+- [Bitcoin Knots SHA256](https://github.com/paulscode/knots-sha256) — the node this package installs: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core for the SHA256 chain, consensus-identical to Bitcoin Core.
+- [About Bitcoin Knots](https://bitcoinknots.org/#about) — the original project's description of how Knots' policy controls differ from Bitcoin Core.
 
 ## What you get on StartOS
 
@@ -11,9 +12,9 @@
 - An embedded **i2pd** sidecar that brings up I2P transport automatically — your node accepts inbound peers over I2P out of the box, with a separate **I2P Daemon Console** interface available when you turn the i2pd web console on.
 - An automatic Tor outbound proxy (your node reaches `.onion` peers without configuration); add a `.onion` to the Peer Interface to advertise yourself and accept inbound Tor connections too.
 - Pruned by default, to about 5 GB of blocks, on any disk. This is a companion meant to run beside your main node, so a second full copy of the same chain is rarely what you want. Set **Pruning** to 0 under Actions and Config, Other Settings, for a full archival node; the field's minimum stays disk-aware, so archival is offered only where the disk could hold it. Pruning disables `txindex`. The transition is transparent — pruned nodes route RPC through a small `btc-rpc-proxy` sidecar so port 8332 always serves RPC the same way, and it fetches any block your node has pruned from the peer-to-peer network on demand, so wallets and services see a node that behaves as though nothing were pruned.
-- **A separate package from the official Bitcoin service, deliberately.** This is a companion node: its own id, its own ports, its own data. Install it *alongside* the official Bitcoin or Bitcoin Knots service, not instead of it, and run one node that enforces BIP-110 (RDTS) and one that does not at the same time.
+- **A separate package from the official Bitcoin service, deliberately.** This is a companion node: its own id, its own ports, its own data. Install it *alongside* the official Bitcoin or Bitcoin Knots service, not instead of it, and run a Knots node with Knots' policy defaults beside the node your other services already depend on.
 
-  This is the one place this service differs from the upstream package it is built from. That one shares the `bitcoind` package id with Bitcoin Core and the other Knots flavors, so switching between them keeps the synced chain. This one does not share it, so there is no switching and nothing is inherited: installing it starts its own Initial Block Download into its own volume. That is the cost of being able to run both at once.
+  This is the one place this service differs from the drop-in package it is built from. That one shares the `bitcoind` package id with Bitcoin Core and Bitcoin Knots, so switching between them keeps the synced chain. This one does not share it, so there is no switching and nothing is inherited: installing it starts its own Initial Block Download into its own volume. That is the cost of being able to run both at once.
 
 ## Getting set up
 
@@ -67,34 +68,6 @@ Every action above acts on the currently selected wallet, so if you run more tha
 - **Reindex Chainstate** — rebuild chainstate from existing blocks (not available on pruned nodes).
 - **Delete Peer List** — wipe `peers.dat` if peer discovery is misbehaving.
 - **Delete Transaction Index** / **Delete Coinstats Index** — clear a corrupted index so it can be rebuilt.
-
-### If the network splits over BIP-110 (RDTS)
-
-**This service never enforces RDTS.** That is the whole reason to run it: if the
-network ever splits over BIP-110, this node stays on the side that does not
-require it, whatever the node beside it is doing.
-
-There is no "switching flavors" here, and that is worth stating because the
-upstream package this is built from does have it. There, Bitcoin Core and every
-Knots flavor share one package id and one data volume, so you can change flavor
-and keep the synced chain, and the package carries machinery to correct the
-block verdicts a node inherits when you do. This service has its own id and its
-own volume. Nothing is shared and nothing is inherited, so none of that applies:
-you run both nodes at once rather than swapping one for the other.
-
-The verdict-correction machinery is still in the package and still runs, and on
-this service it has nothing to correct. It is kept rather than removed so that
-this package stays a thin fork of upstream, which is what lets it keep receiving
-upstream's fixes.
-
-Two things that do apply during an actual split:
-
-- **Peers matter.** Following a chain requires peers that serve it. During a
-  contentious split, add a trusted node on your preferred side via **Peer
-  Settings → Add Nodes** if your node does not converge.
-- **Dependent services.** Point services at the node whose chain they should
-  follow, and check afterwards. A service pointed at the wrong one of two nodes
-  is wrong about everything it reads, and nothing will tell it so.
 
 ### Advanced
 
