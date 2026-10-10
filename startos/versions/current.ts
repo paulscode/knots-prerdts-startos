@@ -146,8 +146,16 @@ export const current = VersionInfo.of({
   // The Bitcoin Core revisions this package stands in for when a dependent's
   // `versionRange` is evaluated. Track the official bitcoin-core-startos:
   // its current `version` plus the `.satisfies(...)` it carries. Copied from
-  // Core 31.x `31.1:17` on 2026-09-19; see UPDATING.md.
-  .satisfies('31.1:17')
+  // Core 31.x on 2026-09-19; see UPDATING.md.
+  //
+  // 31.1:16, NOT :17, deliberately. Core 31.1:17 is where the official package
+  // started serving `rpc-local` (bitcoind's REST port, `rest=1`), and dependents
+  // key on that: official electrs 0.12 requires >=31.1:17 because it reads the
+  // node over REST. This package has no REST and no `rpc-local` host, so claiming
+  // :17 let such a dependent install against it and then fail at runtime. Raise
+  // this past :16 only together with REST, `rpc-local` and btc-rpc-proxy v0.8.2
+  // fronting `rpc` (upstream 871b2d7, 66d4495, e19c0ac).
+  .satisfies('31.1:16')
   .satisfies('30.3:16')
   .satisfies('29.4:16')
   .satisfies('28.4:29')

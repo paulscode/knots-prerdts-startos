@@ -41,7 +41,7 @@ export const manifest = setupManifest({
     // v0.8.0 has both defects. Carried from knots-prerdts-startos.
     proxy: {
       source: {
-        dockerTag: 'ghcr.io/start9labs/btc-rpc-proxy:v0.8.1',
+        dockerTag: 'ghcr.io/start9labs/btc-rpc-proxy:v0.8.2',
       },
       arch: ['x86_64', 'aarch64', 'riscv64'],
     },
