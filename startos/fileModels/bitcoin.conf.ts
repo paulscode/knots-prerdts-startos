@@ -285,7 +285,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     max: 10_000,
     integer: true,
     units: i18n('bytes'),
-    footnote: `${i18n('Default')}: 83 bytes`,
+    footnote: `${i18n('Default')}: 42 bytes`,
   }),
   permitbaredatacarrier: Value.triState({
     name: i18n('Permit Bare Datacarrier'),
@@ -303,7 +303,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     name: i18n('Reject Tokens'),
     description: i18n('Reject tokens transactions (runes)'),
     default: null,
-    footnote: `${i18n('Default')}: false`,
+    footnote: `${i18n('Default')}: true`,
   }),
   mempoolreplacement: Value.select({
     name: i18n('Mempool Replacement'),
