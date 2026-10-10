@@ -57,7 +57,7 @@ export const manifest = setupManifest({
     // Anything below v0.8.1 is not safe to pin here. v0.8.0 has both defects.
     proxy: {
       source: {
-        dockerTag: 'ghcr.io/start9labs/btc-rpc-proxy:v0.8.1',
+        dockerTag: 'ghcr.io/start9labs/btc-rpc-proxy:v0.8.2',
       },
       arch: ['x86_64', 'aarch64', 'riscv64'],
     },
