@@ -9,7 +9,7 @@
 > upstream documentation is accurate and fully applicable — see the
 > Documentation section of `instructions.md` for links.
 
-[Bitcoin Knots SHA256](https://github.com/paulscode/knots-sha256) is Bitcoin Knots' policy patch series maintained on top of Bitcoin Core for the SHA256 chain, consensus-identical to Bitcoin Core. This package follows the SHA256 chain — the chain Bitcoin Core follows — and installs beside the official node under its own id and ports, pruned by default. Like the other bitcoind flavors it runs with an embedded I2P router beside it and, when pruned, a block-fetching RPC proxy in front.
+[Bitcoin Knots SHA256](https://github.com/paulscode/knots-sha256) is Bitcoin Knots' policy patch series maintained on top of Bitcoin Core for the SHA256 chain, consensus-identical to Bitcoin Core. This package follows the SHA256 chain, the chain Bitcoin Core follows, and installs beside the official node under its own id and ports, pruned by default. Like the other bitcoind flavors it runs with an embedded I2P router beside it and, when pruned, a block-fetching RPC proxy in front.
 
 - **Upstream repo:** <https://github.com/bitcoinknots/bitcoin>
 - **Wrapper repo this forks:** <https://github.com/Start9-Community/bitcoin-knots-prerdts-startos> (renamed from `Start9Labs/bitcoin-knots-startos`, branch `29.x-prerdts`, and moved to the Community Registry on 2026-09-03 now that the pin is final)
@@ -85,7 +85,11 @@ Three models, and ownership is decided per key rather than per file: some keys a
 
 **Knots exposes far more policy than Core does**, and this package models all of it: parasite and token rejection, bare pubkey, anchor and datacarrier permissions, script and legacy-sigop limits, datacarrier cost, ancestor and descendant limits, dust relay fee, ephemeral and unknown-witness handling, mempool replacement and TRUC policy, coin-age and maturity relay floors, and block template sizing. Each is a plain configurable key with Knots' own default when unset.
 
-`consensusrules` is modelled but not exposed: this node has no such option, so the key is modelled as **must be absent** — a stale value left on disk is discarded on the next write rather than passed to a binary that would not recognise it.| Key                                                                                  | Upstream default             | Seeded value                                     | Why                                    |
+`consensusrules` is modelled but not exposed: this node has no such option, so the key is modelled as **must be absent**: a stale value left on disk is discarded on the next write rather than passed to a binary that would not recognise it.
+
+**Seeded at install and then yours.** Install overrides these and nothing else:
+
+| Key                                                                                  | Upstream default             | Seeded value                                     | Why                                    |
 | ------------------------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------ | -------------------------------------- |
 | `zmqpubrawblock`, `zmqpubhashblock`, `zmqpubrawtx`, `zmqpubhashtx`, `zmqpubsequence` | off                          | ports 28332 (block) and 28333 (transaction)      | Dependent services subscribe to them   |
 | `blockfilterindex`                                                                   | off                          | `basic`                                          | Dependents need BIP158 filters         |
@@ -246,7 +250,6 @@ One task, and it exists only to report a failure that happens after the action t
 | Download UTXO Snapshot | `important` | A snapshot download or load fails; the error is the task's reason | The action is run again |
 
 `important` rather than `critical`, deliberately: a node without a snapshot syncs normally, so nothing should be blocked. The task can return — a second failed attempt raises it again with the new error.
-
 
 ## Health Checks
 

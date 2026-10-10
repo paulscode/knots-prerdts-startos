@@ -8,7 +8,7 @@ framework that produces the releases documents the procedure (RUNBOOK §9.1c) an
 
 ## Current pin
 
-`VERSION` build-arg under `images.bitcoind.source.dockerBuild.buildArgs` in `startos/manifest/index.ts` — still
+`VERSION` build-arg under `images.bitcoind.source.dockerBuild.buildArgs` in `startos/manifest/index.ts`: still
 `29.3.knots20260507` until the first Bitcoin Knots SHA256 release; from then on always the same release string as the
 drop-in package.
 
@@ -16,8 +16,8 @@ drop-in package.
 
 1. `git fetch dropin && git merge dropin/main` (remote `dropin` = knots-sha256-startos); resolve conflicts only in
    delta files, keeping this package's identity, ports and defaults.
-2. `VERSION` = the release string of the drop-in; `startos/versions/current.ts`: bump `#knotsprerdts:<core>:<N>` — keep
-   the `#knotsprerdts` flavor (Datum Gateway (SHA256) Companion depends on `>=#knotsprerdts:29.3:25`).
+2. `VERSION` = the release string of the drop-in; `startos/versions/current.ts`: bump `#knotsprerdts:<core>:<N>`, and keep
+   the `#knotsprerdts` flavor (Datum Gateway (SHA256) Companion depends on `>=#knotsprerdts:29.3:29`).
 3. `npm run check`; framework `tools/companion-check.py --startos` must PASS.
 4. Workspace `./release.sh knots-prerdts-startos`, sign `SHA256SUMS` on the air-gapped machine, `--publish`, then
    publish to the registry (`start9-store/start9-040`: `make publish PKG=<this repo>/builds`).
