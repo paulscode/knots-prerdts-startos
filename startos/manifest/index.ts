@@ -20,6 +20,9 @@ export const manifest = setupManifest({
   upstreamRepo: 'https://github.com/bitcoinknots/bitcoin',
   marketingUrl: 'https://bitcoinknots.org/',
   description: { short, long },
+  // StartOS 0.4.0.2, not the SDK's default, so the registry hides releases from
+  // older servers. Every release from 2026-10-11 on targets 0.4.0.2.
+  osVersion: '0.4.0.2',
   volumes: ['main', 'i2pd'],
   images: {
     bitcoind: {
