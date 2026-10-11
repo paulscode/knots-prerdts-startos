@@ -8,7 +8,7 @@ const shortEn =
   'A pruned Bitcoin Knots node for the SHA256 chain, to run beside your main node'
 
 const longEn =
-  'Bitcoin Knots for the SHA256 chain, the chain Bitcoin Core follows, as a second node beside your existing Bitcoin or Bitcoin Knots service. It has its own id, its own ports and its own data, and it is pruned by default so both nodes fit on one machine. Run it when you want a node with Knots\' policy defaults without replacing the node your other services depend on, or pair it with Datum Gateway (SHA256) Companion to mine this chain. Pruned nodes still serve dependents: an RPC proxy in front of the node fetches any pruned block from peers on demand. An I2P router runs beside it. It follows Bitcoin Knots SHA256 releases (Bitcoin Knots\' patch series maintained on top of Bitcoin Core for the SHA256 chain) in lock-step with the drop-in Bitcoin Knots SHA256 package.'
+  "Bitcoin Knots for the SHA256 chain, the chain Bitcoin Core follows, as a second node beside your existing Bitcoin or Bitcoin Knots service. It has its own id, its own ports and its own data, and it is pruned by default so both nodes fit on one machine. Run it when you want a node with Knots' policy defaults without replacing the node your other services depend on, or pair it with Datum Gateway (SHA256) Companion to mine this chain. Pruned nodes still serve dependents: an RPC proxy in front of the node fetches any pruned block from peers on demand. An I2P router runs beside it. It follows Bitcoin Knots SHA256 releases (Bitcoin Knots' patch series maintained on top of Bitcoin Core for the SHA256 chain) in lock-step with the drop-in Bitcoin Knots SHA256 package."
 
 export const short = {
   en_US: shortEn,
