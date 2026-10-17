@@ -113,6 +113,7 @@ export async function deleteIndex(
 }
 
 export type GetNetworkInfo = {
+  networkactive: boolean
   connections: number
   connections_in: number
   connections_out: number
