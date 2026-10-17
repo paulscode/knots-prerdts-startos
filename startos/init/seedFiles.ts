@@ -28,6 +28,10 @@ export const seedFiles = sdk.setupOnInit(async (effects, kind) => {
       dbcache: defaultDbcache(),
       dbbatchsize: defaultDbbatchsize(),
       natpmp: false,
+      // Knots 29.3 leaves token transactions allowed by default; new installs
+      // reject them. Only on install: an existing node keeps whatever its
+      // bitcoin.conf says.
+      rejecttokens: true,
       datacarriercost: defaultDatacarriercost,
       // Pruned on every fresh install, where the official package this forks
       // prunes only on a small disk. This node is a companion meant to run

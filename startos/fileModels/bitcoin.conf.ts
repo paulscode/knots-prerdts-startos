@@ -325,7 +325,13 @@ export const fullConfigSpec = sdk.InputSpec.of({
   rejecttokens: Value.triState({
     name: i18n('Reject Tokens'),
     description: i18n('Reject tokens transactions (runes)'),
-    default: null,
+    // On for new installs, which seedFiles writes as rejecttokens=1. An
+    // existing node whose bitcoin.conf leaves it unset reads as null in
+    // fileToForm, not as this default, so saving the form cannot turn it on
+    // behind the user's back.
+    default: true,
+    // Knots' own DEFAULT_REJECT_TOKENS, false at 29.3.knots20260507
+    // (src/policy/policy.h), which is what an unset bitcoin.conf gets.
     footnote: `${i18n('Default')}: false`,
   }),
   mempoolreplacement: Value.select({
@@ -1016,7 +1022,7 @@ function fileToForm(
     datacarriersize,
     permitbaredatacarrier,
     rejectparasites,
-    rejecttokens,
+    rejecttokens: rejecttokens ?? null,
     mempoolreplacement: mempoolreplacement ?? 'default',
     mempooltruc: mempooltruc ?? 'default',
     permitbareanchor,
