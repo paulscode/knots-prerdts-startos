@@ -67,7 +67,7 @@ Every action above acts on the currently selected wallet, so if you run more tha
 - **Reindex Blockchain** — full reindex; expect a long re-sync.
 - **Reindex Chainstate** — rebuild chainstate from existing blocks (not available on pruned nodes).
 - **Delete Peer List** — wipe `peers.dat` if peer discovery is misbehaving.
-- **Delete Transaction Index** / **Delete Coinstats Index** — clear a corrupted index so it can be rebuilt.
+- **Delete Transaction Index** / **Delete Coinstats Index** / **Delete Block Filter Index** — clear a corrupted index so it can be rebuilt. On a pruned node, rebuilding block filters needs Reindex Blockchain.
 
 ### Advanced
 

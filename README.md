@@ -96,6 +96,7 @@ Three models, and ownership is decided per key rather than per file: some keys a
 | `dbcache`                                                                            | 450 MiB                      | 25% of system RAM, capped at 5120 MiB            | Faster initial sync                    |
 | `dbbatchsize`                                                                        | 16 MiB                       | Scaled to system RAM, between 16 and 32 MiB      | Faster initial sync                    |
 | `prune`                                                                              | 0 (archival)                 | 5000 MiB on every fresh install                  | A companion should not hold a second full chain |
+| `rejecttokens`                                                                       | off                          | on                                               | Token (runes) transactions are not relayed |
 | `i2psam`                                                                             | off                          | The embedded I2P router's SAM address            | I2P peering without a separate service |
 | `assumevalid`                                                                        | A hash built into the binary | A hash pinned by this package                    | —                                      |
 
@@ -194,17 +195,18 @@ Both set a flag in `store.json` and then restart the node if it is running, or t
 
 **Reindex Blockchain** rebuilds the block and chainstate databases from genesis. On an archival node it re-uses the blocks on disk; on a pruned node it is equivalent to syncing from scratch, which can take weeks on modest hardware. **Reindex Chainstate** rebuilds only the chainstate and is strictly faster, and is hidden on pruned nodes, where it does not apply. Reach for either only for suspected corruption — they are safe to repeat, but each costs a full rebuild.
 
-### Delete Peer List, Delete Transaction Index, Delete Coinstats Index
+### Delete Peer List, Delete Transaction Index, Delete Coinstats Index, Delete Block Filter Index
 
-Three recovery actions for a corrupted file, each requiring the service to be stopped because bitcoind holds these open while running. Each deletes one thing and nothing else; the node recreates it on the next start.
+Four recovery actions for a corrupted file, each requiring the service to be stopped because bitcoind holds these open while running. Each deletes one thing and nothing else; the node recreates it on the next start.
 
 | Action                   | Removes                  | Cost of the rebuild                          |
 | ------------------------ | ------------------------ | -------------------------------------------- |
 | Delete Peer List         | `peers.dat`              | None — peers are rediscovered                |
 | Delete Transaction Index | `indexes/txindex`        | A full re-index over the chain on next start |
-| Delete Coinstats Index   | `indexes/coinstatsindex` | A full re-index over the chain on next start |
+| Delete Coinstats Index   | `indexes/coinstats`      | A full re-index over the chain on next start |
+| Delete Block Filter Index | `indexes/blockfilter`   | A rebuild on next start if block filters are on; on a pruned node, Reindex Blockchain |
 
-All three are idempotent: deleting a file that is already gone succeeds.
+Knots 29 keeps the coinstats index in `indexes/coinstats`; `indexes/coinstatsindex` is the Core and Knots 30+ name, which this action used to target and so failed. All four are idempotent: deleting a file that is already gone succeeds.
 
 ### Download UTXO Snapshot (assumeutxo)
 
@@ -253,13 +255,14 @@ One task, and it exists only to report a failure that happens after the action t
 
 ## Health Checks
 
-Seven checks at most, and three of them can never report a failure: they describe the node's reachability posture rather than its health.
+Eight checks at most, and three of them can never report a failure: they describe the node's reachability posture rather than its health.
 
 | Check           | Displayed       | Probes                                                                                       | Grace       | Present                                    |
 | --------------- | --------------- | -------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------ |
 | `bitcoind`      | RPC             | Waits for `.cookie` to appear, then that the RPC port is listening                           | SDK default | always                                     |
 | `sync-progress` | Blockchain Sync | `getblockchaininfo` plus `getchaintips`, every 30 s (5 s while starting or failing)          | —           | always                                     |
 | `index-sync`    | Index Sync      | `getindexinfo`, plus `getblockchaininfo` only while an index is behind, on the same schedule | —           | always                                     |
+| `peers`         | Peers           | `getnetworkinfo`, on the same schedule                                                       | 5 minutes   | always                                     |
 | `i2pd`          | I2P             | i2pd's I2PControl `RouterInfo` on loopback                                                   | 5 minutes   | while I2P is enabled                       |
 | `i2p`           | I2P             | nothing — a `disabled` placeholder in place of the daemon check                              | —           | while I2P is off, or excluded by `onlynet` |
 | `tor`           | Tor             | Tor's installed and running state, and whether an onion address is published                 | —           | always                                     |
@@ -268,7 +271,11 @@ Seven checks at most, and three of them can never report a failure: they describ
 
 **`bitcoind` failing** means the RPC port never opened. The cookie is deleted at the start of every run and recreated by bitcoind itself, so a check still waiting on it is one where bitcoind is not reaching the point of serving RPC — read the service logs for a startup or database error rather than looking for a networking fault.
 
-**`sync-progress` is a progress meter, not a fault indicator.** It reports a percentage for the whole of the Initial Block Download, which legitimately runs for hours to days. It succeeds once bitcoind clears `initialblockdownload`, and also while that flag is still set if `getchaintips` reports no non-invalid tip above the active one — the flag lags a node that has in fact caught up, and a node with nothing above its tip has nothing left to fetch. It reports `starting` whenever the RPC call fails, which is normal while the node is coming up; when the failure is RPC warmup (`-28`) the message carries bitcoind's own account of what it is doing, so a long `Verifying blocks…` or the `Replaying blocks…` that follows an unclean stop is visible rather than indistinguishable from a hang. Before the first block connects it reports the height of the header chain rather than a block percentage that would sit at 0.00% for the whole of that phase. The two chain checks share one probe for their RPC calls, so both separate a node that is not answering yet — `starting` — from a call that could not be run at all or a reply that could not be parsed, which is the only condition under which either reports `failure`.
+**`sync-progress` is a progress meter, not a fault indicator.** It reports a percentage for the whole of the Initial Block Download, which legitimately runs for hours to days. It succeeds once bitcoind clears `initialblockdownload` with the tip at most one block behind the best header, and also while that flag is still set if `getchaintips` reports no non-invalid tip above the active one — the flag lags a node that has in fact caught up, and a node with nothing above its tip has nothing left to fetch. It reports `starting` whenever the RPC call fails, which is normal while the node is coming up; when the failure is RPC warmup (`-28`) the message carries bitcoind's own account of what it is doing, so a long `Verifying blocks…` or the `Replaying blocks…` that follows an unclean stop is visible rather than indistinguishable from a hang. Before the first block connects it reports the height of the header chain rather than a block percentage that would sit at 0.00% for the whole of that phase. The two chain checks share one probe for their RPC calls, so both separate a node that is not answering yet — `starting` — from a call that could not be run at all or a reply that could not be parsed, which is the only condition under which either reports `failure`.
+
+Out of IBD it reads `loading`, "Catching up: N blocks behind", when the best header is two or more blocks ahead of the tip. bitcoind never sets `initialblockdownload` again once it clears, so without this a node that fell behind after its first sync read fully synced for as long as it stayed behind. One block ahead is a new block between its header and its connection, and stays synced.
+
+**`peers` fails when the node has no outbound peer** after its five-minute grace period, giving the inbound count in its message, and reads `disabled` while peer-to-peer networking is switched off. Inbound peers do not count, because a node can be reached without reaching anyone. A node cut off entirely receives no new headers either, so `sync-progress` keeps reading synced; this is the check that catches it.
 
 **`index-sync` is separate from `sync-progress` because the indexes are.** `getindexinfo` lists only the indexes actually enabled, so the check reports `disabled` when there are none and success when every one of them sits at the tip — the normal state throughout IBD, where an index follows block connection rather than trailing it. It goes to `loading` when one falls behind, naming the furthest behind and its height as a percentage of the chain tip. The case it exists for is enabling an index on a node that is already synced: that starts a backfill from the first block, during which `getrawtransaction`, `getblockfilter`, and `gettxoutsetinfo` answer for only the part of the chain the index has reached, while `sync-progress` reports the node fully synced. An index that is behind is working, not broken, so that reads as `loading`; the only thing that reddens this check is bitcoind failing to answer or answering with something unreadable.
 
