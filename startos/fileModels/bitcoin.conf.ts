@@ -302,7 +302,11 @@ export const fullConfigSpec = sdk.InputSpec.of({
   rejecttokens: Value.triState({
     name: i18n('Reject Tokens'),
     description: i18n('Reject tokens transactions (runes)'),
-    default: null,
+    // On for new installs, which seedFiles writes as rejecttokens=1. An
+    // existing node whose bitcoin.conf leaves it unset reads as null in
+    // fileToForm, not as this default, so saving the form cannot turn it on
+    // behind the user's back.
+    default: true,
     footnote: `${i18n('Default')}: true`,
   }),
   mempoolreplacement: Value.select({
@@ -993,7 +997,7 @@ function fileToForm(
     datacarriersize,
     permitbaredatacarrier,
     rejectparasites,
-    rejecttokens,
+    rejecttokens: rejecttokens ?? null,
     mempoolreplacement: mempoolreplacement ?? 'default',
     mempooltruc: mempooltruc ?? 'default',
     permitbareanchor,

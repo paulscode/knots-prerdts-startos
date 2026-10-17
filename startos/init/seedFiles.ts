@@ -26,6 +26,10 @@ export const seedFiles = sdk.setupOnInit(async (effects, kind) => {
       dbcache: defaultDbcache(),
       dbbatchsize: defaultDbbatchsize(),
       natpmp: false,
+      // Written rather than left to the binary's own default (true for series
+      // 31) so the choice belongs to this install and survives a series that
+      // changes it. Only on install: an existing node keeps its bitcoin.conf.
+      rejecttokens: true,
       datacarriercost: defaultDatacarriercost,
       prune: (await diskUsage()).total < archivalMin ? minPrune : 0,
       raw: {
