@@ -27,10 +27,7 @@ const fromUiKey = (key: string): string =>
 
 /** Loaded wallets (listwallets) plus on-disk wallets not currently loaded
  *  (listwalletdir), so a dependent service's wallet is selectable too. */
-async function listAllWallets(
-  effects: T.Effects,
-  opts: { prune: boolean },
-): Promise<string[]> {
+async function listAllWallets(effects: T.Effects): Promise<string[]> {
   return sdk.SubContainer.withTemp(
     effects,
     { imageId: 'bitcoind' },
@@ -41,7 +38,7 @@ async function listAllWallets(
 
       const loadedRes = await subc.exec([
         'bitcoin-cli',
-        ...rpcArgs({ prune: opts.prune }),
+        ...rpcArgs(),
         'listwallets',
       ])
       try {
@@ -51,7 +48,7 @@ async function listAllWallets(
 
       const onDiskRes = await subc.exec([
         'bitcoin-cli',
-        ...rpcArgs({ prune: opts.prune }),
+        ...rpcArgs(),
         'listwalletdir',
       ])
       try {
@@ -66,12 +63,11 @@ async function listAllWallets(
 
 const inputSpec = InputSpec.of({
   wallet: Value.dynamicSelect(async ({ effects }) => {
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const selected = await getSelectedWallet(effects)
 
     let wallets: string[] = []
     try {
-      wallets = await listAllWallets(effects, { prune: !!conf.prune })
+      wallets = await listAllWallets(effects)
     } catch {}
 
     // Always offer the current selection and the historical default so the
@@ -129,8 +125,6 @@ export const selectWallet = sdk.Action.withInput(
   async ({ effects, input }) => {
     const wallet = fromUiKey(input.wallet)
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
-
     // Best-effort load so the selection is immediately usable. "Already
     // loaded" errors are ignored (non-failing exec).
     await sdk.SubContainer.withTemp(
@@ -139,12 +133,7 @@ export const selectWallet = sdk.Action.withInput(
       bitcoinMounts,
       'select-wallet',
       async (subc) => {
-        await subc.exec([
-          'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune }),
-          'loadwallet',
-          wallet,
-        ])
+        await subc.exec(['bitcoin-cli', ...rpcArgs(), 'loadwallet', wallet])
       },
     )
 

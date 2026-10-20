@@ -333,7 +333,7 @@ export default {
     1567: 'Blocks',
     // Knots other additions
     1741: 'Software Expiry',
-    1742: 'Stop working after this POSIX timestamp (set to 0 to disable)',
+    1742: "Stop working after this POSIX timestamp. Leave empty for this release's built-in expiry; set 0 to disable.",
     1743: 'timestamp',
     1744: 'Template Construction',
     1745: 'Set limits for block size/weight',
@@ -776,7 +776,7 @@ export default {
     1567: 'Blocks',
     // Knots other additions
     1741: 'Software Expiry',
-    1742: 'Stop working after this POSIX timestamp (set to 0 to disable)',
+    1742: "Stop working after this POSIX timestamp. Leave empty for this release's built-in expiry; set 0 to disable.",
     1743: 'timestamp',
     1744: 'Template Construction',
     1745: 'Set limits for block size/weight',
@@ -1219,7 +1219,7 @@ export default {
     1567: 'Blocks',
     // Knots other additions
     1741: 'Software Expiry',
-    1742: 'Stop working after this POSIX timestamp (set to 0 to disable)',
+    1742: "Stop working after this POSIX timestamp. Leave empty for this release's built-in expiry; set 0 to disable.",
     1743: 'timestamp',
     1744: 'Template Construction',
     1745: 'Set limits for block size/weight',
@@ -1662,7 +1662,7 @@ export default {
     1567: 'Blocks',
     // Knots other additions
     1741: 'Software Expiry',
-    1742: 'Stop working after this POSIX timestamp (set to 0 to disable)',
+    1742: "Stop working after this POSIX timestamp. Leave empty for this release's built-in expiry; set 0 to disable.",
     1743: 'timestamp',
     1744: 'Template Construction',
     1745: 'Set limits for block size/weight',

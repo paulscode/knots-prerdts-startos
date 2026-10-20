@@ -36,7 +36,6 @@ export const restorewallet = sdk.Action.withoutInput(
   async ({ effects }) => {
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     // Must mirror the naming used by the Backup Wallet action
@@ -62,13 +61,7 @@ export const restorewallet = sdk.Action.withoutInput(
         // report failure while bitcoind carried on restoring. bitcoin-cli bounds
         // the call itself (-rpcclienttimeout, 900 s by default). Upstream 4fad06b.
         return await subc.execFail(
-          [
-            'bitcoin-cli',
-            ...rpcArgs({ prune: !!conf.prune }),
-            'restorewallet',
-            wallet,
-            backupFile,
-          ],
+          ['bitcoin-cli', ...rpcArgs(), 'restorewallet', wallet, backupFile],
           { timeout: null },
         )
       },

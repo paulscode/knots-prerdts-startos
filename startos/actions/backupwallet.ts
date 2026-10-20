@@ -37,7 +37,6 @@ export const backupwallet = sdk.Action.withoutInput(
   async ({ effects }) => {
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     // The default wallet '' has no path-safe name; back it up as default.dat
@@ -58,11 +57,11 @@ export const backupwallet = sdk.Action.withoutInput(
         .mountAssets({ subpath: null, mountpoint }),
       'Backup wallet',
       async (subc) => {
-        await ensureWalletLoaded(subc, { prune: !!conf.prune, wallet })
+        await ensureWalletLoaded(subc, { wallet })
 
         return await subc.execFail([
           'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune, wallet }),
+          ...rpcArgs({ wallet }),
           'backupwallet',
           backupFile,
         ])

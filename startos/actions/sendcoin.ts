@@ -71,7 +71,6 @@ export const sendCoin = sdk.Action.withInput(
 
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     const res = await sdk.SubContainer.withTemp(
@@ -87,11 +86,11 @@ export const sendCoin = sdk.Action.withInput(
         .mountAssets({ subpath: null, mountpoint }),
       'sendcoin',
       async (subc) => {
-        await ensureWalletLoaded(subc, { prune: !!conf.prune, wallet })
+        await ensureWalletLoaded(subc, { wallet })
 
         return await subc.execFail([
           'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune, wallet }),
+          ...rpcArgs({ wallet }),
           '-named',
           'sendtoaddress',
           `address=${address}`,

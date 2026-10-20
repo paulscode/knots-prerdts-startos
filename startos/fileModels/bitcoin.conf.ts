@@ -8,9 +8,7 @@ import {
   peerPortInternal,
   peerPortLocal,
   rpcallowip,
-  rpcallowipPruned,
   rpcbind,
-  rpcbindPruned,
   rpccookiefile,
   zmqBundle,
 } from '../utils'
@@ -54,22 +52,22 @@ const validNets = ['ipv4', 'ipv6', 'onion', 'i2p'] as const
 const onlyNetOption = z.enum(validNets)
 type ValidNets = z.infer<typeof onlyNetOption>
 
-export const shape = z
-  .looseObject({
-    // RPC enforced
-    rpcbind: z.enum([rpcbind, rpcbindPruned]).catch(rpcbind),
-    rpcallowip: z.enum([rpcallowip, rpcallowipPruned]).catch(rpcallowip),
-    rpcuser: z.undefined().optional().catch(undefined),
-    rpcpassword: z.undefined().optional().catch(undefined),
-    rpccookiefile: z.literal(rpccookiefile).catch(rpccookiefile),
-    // Peers enforced
-    listen: z.literal(true).catch(true),
-    bind: z
-      .union([z.array(z.string()).transform((a) => a.at(-1)!), z.string()])
-      .catch(`0.0.0.0:${peerPortInternal}`),
-    whitebind: z
-      .literal(`0.0.0.0:${peerPortLocal}`)
-      .catch(`0.0.0.0:${peerPortLocal}`),
+export const shape = z.looseObject({
+  // RPC enforced
+  rpcbind: z.literal(rpcbind).catch(rpcbind),
+  rpcallowip: z.literal(rpcallowip).catch(rpcallowip),
+  rpcuser: z.undefined().optional().catch(undefined),
+  rpcpassword: z.undefined().optional().catch(undefined),
+  rpccookiefile: z.literal(rpccookiefile).catch(rpccookiefile),
+  rest: z.literal(true).catch(true),
+  // Peers enforced
+  listen: z.literal(true).catch(true),
+  bind: z
+    .union([z.array(z.string()).transform((a) => a.at(-1)!), z.string()])
+    .catch(`0.0.0.0:${peerPortInternal}`),
+  whitebind: z
+    .literal(`0.0.0.0:${peerPortLocal}`)
+    .catch(`0.0.0.0:${peerPortLocal}`),
 
   // RPC
   rpcauth: iniStringArray,
@@ -92,9 +90,11 @@ export const shape = z
   bytespersigop: iniNumber,
   bytespersigopstrict: iniNumber,
   limitancestorcount: iniNumber,
-  limitancestorsize: iniNumber,
+  // Removed in Core 31 (cluster mempool: -limitclustersize); the node ignores it, so it is not offered and a value on disk is dropped
+  limitancestorsize: z.undefined().optional().catch(undefined),
   limitdescendantcount: iniNumber,
-  limitdescendantsize: iniNumber,
+  // Removed in Core 31 (cluster mempool: -limitclustersize); the node ignores it, so it is not offered and a value on disk is dropped
+  limitdescendantsize: z.undefined().optional().catch(undefined),
   permitbarepubkey: iniBoolean,
   maxscriptsize: iniNumber,
   datacarriercost: iniNumber,
@@ -412,18 +412,6 @@ export const fullConfigSpec = sdk.InputSpec.of({
     integer: true,
     footnote: `${i18n('Default')}: 25`,
   }),
-  limitancestorsize: Value.number({
-    name: i18n('Max Ancestor Size'),
-    description: i18n(
-      'Do not accept a transaction whose size, together with all its in-mempool ancestors, exceeds this many kilobytes.',
-    ),
-    default: null,
-    required: false,
-    min: 0,
-    integer: true,
-    units: 'kB',
-    footnote: `${i18n('Default')}: 101 kB`,
-  }),
   limitdescendantcount: Value.number({
     name: i18n('Max Descendant Count'),
     description: i18n(
@@ -434,18 +422,6 @@ export const fullConfigSpec = sdk.InputSpec.of({
     min: 0,
     integer: true,
     footnote: `${i18n('Default')}: 25`,
-  }),
-  limitdescendantsize: Value.number({
-    name: i18n('Max Descendant Size'),
-    description: i18n(
-      'Do not accept a transaction if any of its ancestors would then have more than this many kilobytes of in-mempool descendants.',
-    ),
-    default: null,
-    required: false,
-    min: 0,
-    integer: true,
-    units: 'kB',
-    footnote: `${i18n('Default')}: 101 kB`,
   }),
   permitbarepubkey: Value.triState({
     name: i18n('Permit Bare Pubkey'),
@@ -472,7 +448,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     required: true,
     min: 0,
     integer: true,
-    footnote: `${i18n('Default')}: 4`,
+    footnote: `${i18n('Default')}: 1`,
   }),
   acceptnonstddatacarrier: Value.triState({
     name: i18n('Accept Non-Standard Datacarrier'),
@@ -523,13 +499,17 @@ export const fullConfigSpec = sdk.InputSpec.of({
   }),
 
   // === OTHER ===
+  // No built-in value here: each release of the node carries its own expiry,
+  // and a number in this form would be written to bitcoin.conf on every save,
+  // pinning the node to whatever release the form was written for (it used to
+  // say 1825593420, Knots 29.3's 2027-11-07).
   softwareexpiry: Value.number({
     name: i18n('Software Expiry'),
     description: i18n(
-      'Stop working after this POSIX timestamp (set to 0 to disable)',
+      "Stop working after this POSIX timestamp. Leave empty for this release's built-in expiry; set 0 to disable.",
     ),
-    default: 1825593420,
-    required: true,
+    default: null,
+    required: false,
     integer: true,
     units: i18n('timestamp'),
   }),
@@ -707,7 +687,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     min: 0,
     integer: true,
     units: 'MiB',
-    footnote: `${i18n('Default')}: 450 MiB`,
+    footnote: `${i18n('Default')}: 100 to 2048 MiB, depending on RAM`,
   }),
   dbbatchsize: Value.number({
     name: i18n('Database Batch'),
@@ -950,9 +930,7 @@ function fileToForm(
     bytespersigopstrict,
     maxtxlegacysigops,
     limitancestorcount,
-    limitancestorsize,
     limitdescendantcount,
-    limitdescendantsize,
     permitbarepubkey,
     maxscriptsize,
     datacarriercost,
@@ -1024,9 +1002,7 @@ function fileToForm(
     bytespersigopstrict,
     maxtxlegacysigops,
     limitancestorcount,
-    limitancestorsize,
     limitdescendantcount,
-    limitdescendantsize,
     permitbarepubkey,
     maxscriptsize,
     datacarriercost,
@@ -1130,9 +1106,7 @@ function formToFile(
     bytespersigopstrict,
     maxtxlegacysigops,
     limitancestorcount,
-    limitancestorsize,
     limitdescendantcount,
-    limitdescendantsize,
     permitbarepubkey,
     maxscriptsize,
     datacarriercost,
@@ -1202,9 +1176,10 @@ function formToFile(
     whitelist: raw?.whitelist?.filter((a) => !!a) as string[] | undefined,
     externalip: raw?.externalip?.filter((a) => !!a) as string[] | undefined,
 
-    // RPC (prune-derived)
-    rpcbind: prune ? rpcbindPruned : rpcbind,
-    rpcallowip: prune ? rpcallowipPruned : rpcallowip,
+    // RPC
+    rpcbind,
+    rpcallowip,
+    rest: true,
 
     // Mempool - 1:1 pass-through
     persistmempool: persistmempool ?? undefined,
@@ -1227,9 +1202,7 @@ function formToFile(
     bytespersigopstrict: bytespersigopstrict ?? undefined,
     maxtxlegacysigops: maxtxlegacysigops ?? undefined,
     limitancestorcount: limitancestorcount ?? undefined,
-    limitancestorsize: limitancestorsize ?? undefined,
     limitdescendantcount: limitdescendantcount ?? undefined,
-    limitdescendantsize: limitdescendantsize ?? undefined,
     permitbarepubkey: permitbarepubkey ?? undefined,
     maxscriptsize: maxscriptsize ?? undefined,
     datacarriercost,
@@ -1245,7 +1218,7 @@ function formToFile(
     discardfee: wallet?.discardfee ?? undefined,
 
     // Other
-    softwareexpiry,
+    softwareexpiry: softwareexpiry ?? undefined,
     txindex: prune ? false : (txindex ?? undefined),
     coinstatsindex: coinstatsindex ?? undefined,
     peerbloomfilters: peerbloomfilters ?? undefined,

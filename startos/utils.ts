@@ -23,6 +23,18 @@ export const i2pConsoleHostId = 'i2p-console'
  */
 export const peerLocalHostId = 'peer-local'
 
+/**
+ * bitcoind's own RPC listener, REST included, for services on the LXC bridge.
+ * Bound without an exported interface, so it is reachable only over the
+ * bridge — a dependent resolves it with `sdk.host.getBridgeAddress({ hostId:
+ * rpcLocalHostId, internalPort: rpcPortLocal })`.
+ *
+ * `rpcHostId` maps onto the proxy, which answers JSON-RPC only, so a dependent
+ * that reads over REST (electrs) must use this host. It bypasses the proxy, so
+ * a pruned node's missing blocks are not fetched here.
+ */
+export const rpcLocalHostId = 'rpc-local'
+
 // Interface ids (the exported service interfaces on the hosts above).
 export const rpcInterfaceId = 'rpc'
 export const peerInterfaceId = 'peer'
@@ -39,14 +51,13 @@ export const peerPortInternal = 58333
 /** Container port bitcoind whitelists (`whitebind`); the `peer-local` binding maps here. */
 export const peerPortLocal = 58334
 
+/** Container port the proxy serves JSON-RPC on; the `rpc` binding maps here. */
 export const rpcPort = 8332
-export const rpcPortPruned = 58332
+/** Container port bitcoind binds (`rpcbind`); the `rpc-local` binding maps here. */
+export const rpcPortLocal = 58332
 
-export const rpcbind = `0.0.0.0:${rpcPort}`
-export const rpcbindPruned = `127.0.0.1:${rpcPortPruned}`
-
+export const rpcbind = `0.0.0.0:${rpcPortLocal}`
 export const rpcallowip = '0.0.0.0/0'
-export const rpcallowipPruned = '127.0.0.1/32'
 
 export const rootDir = '/root/.bitcoin'
 export const rpccookiefile = '.cookie'
@@ -152,20 +163,17 @@ export type ChainTip = {
     | 'unknown'
 }
 
-export function rpcArgs(opts: { prune: boolean; wallet?: string }): string[] {
+export function rpcArgs(opts: { wallet?: string } = {}): string[] {
   return [
     `-conf=${rootDir}/bitcoin.conf`,
     `-rpccookiefile=${rootDir}/.cookie`,
-    `-rpcport=${opts.prune ? rpcPortPruned : rpcPort}`,
+    `-rpcport=${rpcPortLocal}`,
     ...(opts.wallet !== undefined ? [`-rpcwallet=${opts.wallet}`] : []),
   ]
 }
 
 /** Full bitcoin-cli command prefix for actions running in temp subcontainers. */
-export function bitcoinCliArgs(opts: {
-  prune: boolean
-  wallet?: string
-}): string[] {
+export function bitcoinCliArgs(opts: { wallet?: string } = {}): string[] {
   return ['bitcoin-cli', ...rpcArgs(opts)]
 }
 
@@ -207,22 +215,17 @@ export function isPathSafeWalletName(name: string): boolean {
  *  attempt a load — "already loaded" errors are ignored via non-failing exec. */
 export async function ensureWalletLoaded(
   subc: { exec: (cmd: string[]) => Promise<unknown> },
-  opts: { prune: boolean; wallet: string },
+  opts: { wallet: string },
 ): Promise<void> {
   if (opts.wallet === defaultWalletName) {
     await subc.exec([
       'bitcoin-cli',
-      ...rpcArgs({ prune: opts.prune }),
+      ...rpcArgs(),
       'createwallet',
       defaultWalletName,
     ])
   }
-  await subc.exec([
-    'bitcoin-cli',
-    ...rpcArgs({ prune: opts.prune }),
-    'loadwallet',
-    opts.wallet,
-  ])
+  await subc.exec(['bitcoin-cli', ...rpcArgs(), 'loadwallet', opts.wallet])
 }
 
 /** Absolute on-disk path of a wallet's directory. Mirrors bitcoind's

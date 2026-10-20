@@ -327,7 +327,7 @@ const dict = {
   'Edit more values in bitcoin.conf': 1740,
   // Knots other additions
   'Software Expiry': 1741,
-  'Stop working after this POSIX timestamp (set to 0 to disable)': 1742,
+  "Stop working after this POSIX timestamp. Leave empty for this release's built-in expiry; set 0 to disable.": 1742,
   timestamp: 1743,
   'Template Construction': 1744,
   'Set limits for block size/weight': 1745,

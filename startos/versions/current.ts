@@ -8,6 +8,24 @@ import { bitcoinConfFile } from '../fileModels/bitcoin.conf'
  * flavors share the same policy defaults, so switching between them leaves
  * the mempool config alone.
  */
+/**
+ * Knots 29.3's built-in software expiry (2027-11-07). The pre-RDTS packages'
+ * Other Settings form wrote it into bitcoin.conf on every save whether or not
+ * the user changed it, so a switched-over node would otherwise expire a year
+ * before this release does. Only that exact value is dropped; a value the user
+ * chose (0 included) is kept.
+ */
+const knots293SoftwareExpiry = 1825593420
+
+async function dropInheritedSoftwareExpiry(
+  effects: Parameters<typeof bitcoinConfFile.merge>[0],
+) {
+  const conf = await bitcoinConfFile.read().once()
+  if (conf?.softwareexpiry === knots293SoftwareExpiry) {
+    await bitcoinConfFile.merge(effects, { softwareexpiry: undefined })
+  }
+}
+
 const mempoolReset = {
   // Shared mempool settings
   persistmempool: undefined,
@@ -72,11 +90,11 @@ export const current = VersionInfo.of({
   // number is this package's own revision and bumps on every wrapper release.
   version: '#knotssha:31.1:0',
   releaseNotes: {
-    en_US: `- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core or Bitcoin Knots (pre-RDTS) and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.`,
-    es_ES: `- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core or Bitcoin Knots (pre-RDTS) and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.`,
-    de_DE: `- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core or Bitcoin Knots (pre-RDTS) and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.`,
-    pl_PL: `- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core or Bitcoin Knots (pre-RDTS) and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.`,
-    fr_FR: `- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core or Bitcoin Knots (pre-RDTS) and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.`,
+    en_US: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core, Bitcoin Knots (pre-RDTS), or Bitcoin Knots (Legacy) as carried over from StartOS 0.3.5.1, and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- Dependent services such as Electrs can read the node over its REST interface, served only to services on this server. RPC on port 8332 now always goes through the RPC proxy, which answers JSON-RPC only.\n- Other Settings can set the block weight reserved for the coinbase transaction, and mining services can request it.`,
+    es_ES: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core, Bitcoin Knots (pre-RDTS), or Bitcoin Knots (Legacy) as carried over from StartOS 0.3.5.1, and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- Dependent services such as Electrs can read the node over its REST interface, served only to services on this server. RPC on port 8332 now always goes through the RPC proxy, which answers JSON-RPC only.\n- Other Settings can set the block weight reserved for the coinbase transaction, and mining services can request it.`,
+    de_DE: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core, Bitcoin Knots (pre-RDTS), or Bitcoin Knots (Legacy) as carried over from StartOS 0.3.5.1, and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- Dependent services such as Electrs can read the node over its REST interface, served only to services on this server. RPC on port 8332 now always goes through the RPC proxy, which answers JSON-RPC only.\n- Other Settings can set the block weight reserved for the coinbase transaction, and mining services can request it.`,
+    pl_PL: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core, Bitcoin Knots (pre-RDTS), or Bitcoin Knots (Legacy) as carried over from StartOS 0.3.5.1, and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- Dependent services such as Electrs can read the node over its REST interface, served only to services on this server. RPC on port 8332 now always goes through the RPC proxy, which answers JSON-RPC only.\n- Other Settings can set the block weight reserved for the coinbase transaction, and mining services can request it.`,
+    fr_FR: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- First release of Bitcoin Knots SHA256 on StartOS: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core, as a flavor of the bitcoind package.\n- Switch to it from Bitcoin Core, Bitcoin Knots (pre-RDTS), or Bitcoin Knots (Legacy) as carried over from StartOS 0.3.5.1, and keep your synced chain. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Token transactions are rejected: new installs turn Reject Tokens on, and a node switched over from another flavor keeps a setting it made itself and otherwise gets this build's default, which is also on. Change it under Mempool Settings.\n- A Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- Delete Block Filter Index removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- Dependent services such as Electrs can read the node over its REST interface, served only to services on this server. RPC on port 8332 now always goes through the RPC proxy, which answers JSON-RPC only.\n- Other Settings can set the block weight reserved for the coinbase transaction, and mining services can request it.`,
   },
   migrations: {
     up: async ({ effects }) => {},
@@ -130,7 +148,9 @@ export const current = VersionInfo.of({
       // 29.3.knots20260507 forever, which is exactly the release this series
       // inherits from.
       ['^#knotsprerdts:29.3']: {
-        up: async ({ effects }) => {},
+        up: async ({ effects }) => {
+          await dropInheritedSoftwareExpiry(effects)
+        },
         down: async ({ effects }) => {
           await removeFeeEstimates()
           await removeCoinstatsIndex()
@@ -142,24 +162,25 @@ export const current = VersionInfo.of({
       // BLAKE2b proof-of-work, so those datadirs are on a different chain and a
       // migration in either direction is refused, as the pre-RDTS package refuses it.
       ['<=#knots:29.3:7']: {
-        up: async () => {},
+        up: async ({ effects }) => {
+          await dropInheritedSoftwareExpiry(effects)
+        },
       },
     },
   },
 })
   // The Bitcoin Core revisions this package stands in for when a dependent's
-  // `versionRange` is evaluated. Track the official bitcoin-core-startos:
-  // its current `version` plus the `.satisfies(...)` it carries. Copied from
-  // Core 31.x on 2026-09-19; see UPDATING.md.
+  // `versionRange` is evaluated: the official bitcoin-core-startos `version`
+  // plus the `.satisfies(...)` it carries. Copied from Core 31.x at 31.1:25 on
+  // 2026-10-20; see UPDATING.md.
   //
-  // 31.1:16, NOT :17, deliberately. Core 31.1:17 is where the official package
-  // started serving `rpc-local` (bitcoind's REST port, `rest=1`), and dependents
-  // key on that: official electrs 0.12 requires >=31.1:17 because it reads the
-  // node over REST. This package has no REST and no `rpc-local` host, so claiming
-  // :17 let such a dependent install against it and then fail at runtime. Raise
-  // this past :16 only together with REST, `rpc-local` and btc-rpc-proxy v0.8.2
-  // fronting `rpc` (upstream 871b2d7, 66d4495, e19c0ac).
-  .satisfies('31.1:16')
+  // Claim a Core revision only when this package offers every dependent-facing
+  // feature up to it. At 31.1:25 those are: REST on the bridge-only `rpc-local`
+  // binding with btc-rpc-proxy v0.8.2 fronting `rpc` (:17/:18; electrs 0.12
+  // requires >=31.1:17 and reads the node over REST), the dependent-enabled
+  // wallet (:19), and coinbase block weight that mining services can reserve
+  // (:25). Host ids, interface ids and ports are identical to Core's.
+  .satisfies('31.1:25')
   .satisfies('30.3:16')
   .satisfies('29.4:16')
   .satisfies('28.4:29')

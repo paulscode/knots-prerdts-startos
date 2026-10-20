@@ -32,7 +32,6 @@ export const getaddress = sdk.Action.withoutInput(
   async ({ effects }) => {
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     const res = await sdk.SubContainer.withTemp(
@@ -48,11 +47,11 @@ export const getaddress = sdk.Action.withoutInput(
         .mountAssets({ subpath: null, mountpoint }),
       'getaddress',
       async (subc) => {
-        await ensureWalletLoaded(subc, { prune: !!conf.prune, wallet })
+        await ensureWalletLoaded(subc, { wallet })
 
         return await subc.execFail([
           'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune, wallet }),
+          ...rpcArgs({ wallet }),
           'getnewaddress',
           '',
           'bech32',
