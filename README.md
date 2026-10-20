@@ -1,13 +1,14 @@
 <p align="center">
-  <img src="icon.svg" alt="Bitcoin Knots Logo" width="21%">
+  <img src="icon.png" alt="Bitcoin Knots Logo" width="21%">
 </p>
 
 # Bitcoin Knots (SHA256) Companion on StartOS
 
 > Everything not listed in this document should behave the same as upstream
-> Bitcoin Knots. If a feature, setting, or behavior is not mentioned here, the
-> upstream documentation is accurate and fully applicable — see the
-> Documentation section of `instructions.md` for links.
+> Bitcoin Knots SHA256, which itself behaves like Bitcoin Knots did up to
+> 29.3.knots20260507 on the SHA256 chain. If a feature, setting, or behavior is
+> not mentioned here, the upstream documentation is accurate and fully
+> applicable — see the Documentation section of `instructions.md` for links.
 
 [Bitcoin Knots SHA256](https://github.com/paulscode/knots-sha256) is Bitcoin Knots' policy patch series maintained on top of Bitcoin Core for the SHA256 chain, consensus-identical to Bitcoin Core. This package follows the SHA256 chain, the chain Bitcoin Core follows, and installs beside the official node under its own id and ports, pruned by default. Like the other bitcoind flavors it runs with an embedded I2P router beside it and, when pruned, a block-fetching RPC proxy in front.
 
@@ -35,7 +36,7 @@
 
 ## Image and Container Runtime
 
-The node binary does not come from a registry. The repo's own `Dockerfile` downloads the upstream release tarball from `bitcoinknots.org`, verifies it, and copies `bitcoind` and `bitcoin-cli` onto a slim Debian base. Three registry images run alongside it.
+The node binary does not come from a registry. The repo's own `Dockerfile` downloads the release tarball from the upstream repo's GitHub Release (`https://github.com/paulscode/knots-sha256/releases/download/v<VERSION>/`), verifies it, and copies `bitcoind` and `bitcoin-cli` onto a slim Debian base. Three registry images run alongside it.
 
 | Property      | Value                                                                       |
 | ------------- | --------------------------------------------------------------------------- |
@@ -43,18 +44,18 @@ The node binary does not come from a registry. The repo's own `Dockerfile` downl
 | Architectures | x86_64, aarch64, riscv64                                                    |
 | Entrypoint    | `bitcoind`                                                                  |
 
-Verification is a signer quorum rather than a single trusted key: `SHA256SUMS.asc` must carry good signatures from a quorum of **distinct** signers holding keys committed under `assets/release-keys/`, counted by primary fingerprint so that one signer's subkeys cannot vote twice, and the keyring is asserted equal to the pinned set so a stray key cannot join the count. Only then is the tarball checked against `SHA256SUMS`. The runtime image adds `curl` (the snapshot download shells out to it), `jq`, `yq`, `tini`, and `e2fsprogs`.
+Verification pins the maintainer's key: `SHA256SUMS.asc` must carry a good signature from the key committed under `assets/release-keys/` (fingerprint `FF76D4843EBD7FA06D92DC0CB8AB7B8E7E280E1A`, the same key published at <https://paulscode.com/.well-known/paulscode.asc>), and the keyring is asserted equal to the pinned set so a stray key cannot be slipped in. The quorum machinery inherited from the Knots package is kept intact with `REQUIRED_QUORUM=1`, so a second signer can be added by editing `PINNED_FINGERPRINTS` and the quorum together. Only then is the tarball checked against `SHA256SUMS`. Releases are signed on an air-gapped machine; the online side never holds a secret key. The runtime image adds `curl` (the snapshot download shells out to it), `jq`, `yq`, `tini`, and `e2fsprogs`.
 
-| Subcontainer   | Image                   | Lifetime                 | Purpose                                                                                                                                                                                                                                    |
-| -------------- | ----------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `bitcoind-sub` | built locally           | the running service      | The `bitcoind` daemon — this is the one to `attach` to                                                                                                                                                                                     |
-| `i2pd-sub`     | `purplei2p/i2pd`        | while I2P is enabled     | Embedded I2P router: SAM bridge, SOCKS proxy, I2PControl                                                                                                                                                                                   |
-| `proxy-sub`    | `btc-rpc-proxy`         | while the node is pruned | Serves RPC on 8332 and fetches pruned blocks over p2p                                                                                                                                                                                      |
-| _temporaries_  | built locally, `python` | seconds to hours         | One per action that shells out — `assumeutxo`, `delete-peers`, `delete-txindex`, `delete-coinstats`, `getnetworkinfo`, `getblockchaininfo`, every Wallet-group action, and `rpc-auth-generator` (the `python` image, running `rpcauth.py`) |
+| Subcontainer   | Image                   | Lifetime             | Purpose                                                                                                                                                                                                                                    |
+| -------------- | ----------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `bitcoind-sub` | built locally           | the running service  | The `bitcoind` daemon — this is the one to `attach` to                                                                                                                                                                                     |
+| `i2pd-sub`     | `purplei2p/i2pd`        | while I2P is enabled | Embedded I2P router: SAM bridge, SOCKS proxy, I2PControl                                                                                                                                                                                   |
+| `proxy-sub`    | `btc-rpc-proxy`         | always               | Serves JSON-RPC on 8332; fetches pruned blocks over p2p                                                                                                                                                                                    |
+| _temporaries_  | built locally, `python` | seconds to hours     | One per action that shells out — `assumeutxo`, `delete-peers`, `delete-txindex`, `delete-coinstats`, `getnetworkinfo`, `getblockchaininfo`, every Wallet-group action, and `rpc-auth-generator` (the `python` image, running `rpcauth.py`) |
 
-Three oneshots bracket the daemons. `nocow` sets the btrfs no-COW attribute across the data directory and must finish before `bitcoind` starts. `synced-true` and `chain-recovery` run after it, and are described under [Installation and First-Run Flow](#installation-and-first-run-flow).
+Two oneshots bracket the daemons. `nocow` sets the btrfs no-COW attribute across the data directory and must finish before `bitcoind` starts. `synced-true` runs after it, and is described under [Installation and First-Run Flow](#installation-and-first-run-flow).
 
-The i2pd image has no riscv64 build and is declared `emulateMissingAs: 'x86_64'`, so on riscv64 hardware the I2P router runs emulated.
+The i2pd image has no riscv64 build and is declared `emulateMissing: true`, so on riscv64 hardware the I2P router runs emulated.
 
 ## Volume and Data Layout
 
@@ -81,7 +82,7 @@ Three models, and ownership is decided per key rather than per file: some keys a
 
 ### bitcoin.conf
 
-**Enforced** — rewritten to a fixed value whenever the package writes the file: `rpcbind`, `rpcallowip`, `rpccookiefile`, `listen`, `whitebind`, and `deprecatedrpc`. The first two are derived from whether the node is pruned; the rest are constants. `rpcuser` and `rpcpassword` are modelled as "must be absent", so a value on disk is discarded on the next write rather than honoured. Unlike Bitcoin Core, `mempoolfullrbf` **is** configurable here.
+**Enforced** — rewritten to a fixed value whenever the package writes the file: `rpcbind`, `rpcallowip`, `rpccookiefile`, `rest`, `listen`, `bind`, `whitebind`, and `deprecatedrpc`, all constants. `rest` stays on for dependents on the `rpc-local` binding (see Network Access and Interfaces). `rpcuser` and `rpcpassword` are modelled as "must be absent", so a value on disk is discarded on the next write rather than honoured. Unlike Bitcoin Core, `mempoolfullrbf` **is** configurable here.
 
 **Knots exposes far more policy than Core does**, and this package models all of it: parasite and token rejection, bare pubkey, anchor and datacarrier permissions, script and legacy-sigop limits, datacarrier cost, ancestor and descendant limits, dust relay fee, ephemeral and unknown-witness handling, mempool replacement and TRUC policy, coin-age and maturity relay floors, and block template sizing. Each is a plain configurable key with Knots' own default when unset.
 
@@ -89,16 +90,16 @@ Three models, and ownership is decided per key rather than per file: some keys a
 
 **Seeded at install and then yours.** Install overrides these and nothing else:
 
-| Key                                                                                  | Upstream default             | Seeded value                                     | Why                                    |
-| ------------------------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------ | -------------------------------------- |
-| `zmqpubrawblock`, `zmqpubhashblock`, `zmqpubrawtx`, `zmqpubhashtx`, `zmqpubsequence` | off                          | ports 28332 (block) and 28333 (transaction)      | Dependent services subscribe to them   |
-| `blockfilterindex`                                                                   | off                          | `basic`                                          | Dependents need BIP158 filters         |
-| `dbcache`                                                                            | 450 MiB                      | 25% of system RAM, capped at 5120 MiB            | Faster initial sync                    |
-| `dbbatchsize`                                                                        | 16 MiB                       | Scaled to system RAM, between 16 and 32 MiB      | Faster initial sync                    |
+| Key                                                                                  | Upstream default             | Seeded value                                     | Why                                            |
+| ------------------------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------ | ---------------------------------------------- |
+| `zmqpubrawblock`, `zmqpubhashblock`, `zmqpubrawtx`, `zmqpubhashtx`, `zmqpubsequence` | off                          | off, cleared (`zmqEnabled`)                      | A companion beside your main node rarely needs |
+| `blockfilterindex`                                                                   | off                          | `basic`                                          | Dependents need BIP158 filters                 |
+| `dbcache`                                                                            | 450 MiB                      | 25% of system RAM, capped at 5120 MiB            | Faster initial sync                            |
+| `dbbatchsize`                                                                        | 16 MiB                       | Scaled to system RAM, between 16 and 32 MiB      | Faster initial sync                            |
 | `prune`                                                                              | 0 (archival)                 | 5000 MiB on every fresh install                  | A companion should not hold a second full chain |
-| `rejecttokens`                                                                       | off                          | on                                               | Token (runes) transactions are not relayed |
-| `i2psam`                                                                             | off                          | The embedded I2P router's SAM address            | I2P peering without a separate service |
-| `assumevalid`                                                                        | A hash built into the binary | A hash pinned by this package                    | —                                      |
+| `rejecttokens`                                                                       | on                           | on, written explicitly                           | Stays on if a later series changes the default |
+| `i2psam`                                                                             | off                          | The embedded I2P router's SAM address            | I2P peering without a separate service         |
+| `assumevalid`                                                                        | A hash built into the binary | A hash pinned by this package                    | —                                              |
 
 These are starting points, not assertions: nothing re-imposes them, so changing one in the config forms sticks. The two sync-boost values are the exception, and they are removed rather than re-asserted — see below.
 
@@ -118,7 +119,7 @@ The exceptions are literals, repaired at the next init: `log=stdout` and `loglev
 
 ### store.json
 
-StartOS-side state, none of it upstream configuration. `reindexBlockchain` and `reindexChainstate` are one-shot flags: the next start converts each into a bitcoind argument and clears it. `fullySynced` gates the Sync Complete notification, `snapshotInUse` records that a UTXO snapshot is loaded, and `reconsiderInvalidTips` and `rdtsEnforcedLastRun` drive chain-split recovery. `selectedWallet` records which wallet the Wallet-group actions operate on. `rdtsAcknowledged` is **not** declared here — this flavor's shape strips it, so switching to the RDTS flavor and back is always a fresh opt-in.
+StartOS-side state, none of it upstream configuration. `reindexBlockchain` and `reindexChainstate` are one-shot flags: the next start converts each into a bitcoind argument and clears it. `fullySynced` gates the Sync Complete notification, and `snapshotInUse` records that a UTXO snapshot is loaded. `selectedWallet` records which wallet the Wallet-group actions operate on. `reattachPeerOnions` keeps the legacy peer-address migration pending until a compatible Tor and an enabled peer binding are available.
 
 The store is shared across bitcoind flavors along with the rest of the volume, which is why every flavor declares all of these keys — including ones it never acts on.
 
@@ -130,7 +131,7 @@ One, optional and conditional on how the node is configured.
 | ---------- | --------- | ------------- | ------ | -------------------------------------------------------------------- |
 | Tor        | `running` | none          | none   | Outbound peer connections over Tor, and advertising an onion address |
 
-It becomes a running dependency only when the node is actually set up for onion connectivity — an `externalip` containing a `.onion`, or an `onlynet` that includes `onion`. Otherwise the package declares nothing and starts without Tor.
+It becomes a running dependency only when the node is actually set up for onion connectivity — an `externalip` containing a `.onion`, or an `onlynet` that includes `onion`. The optional dependency is declared once in `startos/dependencies.ts`; its `enabled` watcher activates that running requirement only in those cases.
 
 Tor's SOCKS address is resolved over the service bridge with a fallback port, so `-onion` is passed on **every** start whether or not Tor is installed. A missing Tor is a connection refused, not an error, and the fallback keeps the address stable across Tor being installed, updated, or removed, so those events do not restart Bitcoin.
 
@@ -146,9 +147,13 @@ Two interfaces always, two more when ZeroMQ is enabled, and one more when the I2
 | ZeroMQ Transaction | `zmq-tx`      | api  | 28333                  | when ZeroMQ is enabled                          |
 | I2P Daemon Console | `i2p-console` | ui   | 7070                   | when `i2psam` is set and the i2pd console is on |
 
+**Legacy peer onions:** every init retires the old container-port 8333 binding on `peer` if it is still there, then asks Tor, through `tor-startos`'s `setupOnionReattachment`, to attach that host's retained addresses to container port 58333. It is an init step rather than a migration because an install whose data version is a range, which a flavor switch leaves behind, never runs a migration's `up()`. Their public onion port remains 8333. The request waits for Tor `0.4.9.13:1` or later and for the peer binding to be enabled. It never automatically moves an address from another host.
+
 Block and transaction notifications are two interfaces rather than one because bitcoind publishes them on separate ports, so a dependent that needs only one of them (LND, for instance) can resolve it independently.
 
-**Port 8332 does not always belong to bitcoind.** Unpruned, bitcoind binds `0.0.0.0:8332` directly. Pruned, it binds `127.0.0.1:58332` and `btc-rpc-proxy` takes 8332 and forwards to it, additionally fetching blocks the node has pruned from the p2p network on demand and verifying them against their hash, merkle root, and witness commitment before answering. The switch is automatic, and the interface, port, and credentials are identical either way.
+**Port 8332 belongs to `btc-rpc-proxy`, not bitcoind.** bitcoind binds `0.0.0.0:58332` with REST enabled; the proxy takes 8332, forwards JSON-RPC to it, and answers everything else — REST included — 404. On a pruned node it additionally fetches blocks the node has pruned from the p2p network on demand and verifies them against their hash, merkle root, and witness commitment before answering. The interface, port, and credentials are identical pruned or not.
+
+**`rpc-local` is bitcoind's own port, bridge-only.** Bitcoin Core's REST interface is unauthenticated and cannot be enabled per binding, so it must never sit on the exported `rpc` host, which the user may publish on the LAN, Tor, or a clearnet domain. The `rpc-local` host publishes 58332 with no exported interface, which keeps it on loopback and the LXC bridge, and a dependent that reads over REST (electrs) resolves it with `sdk.host.getBridgeAddress({ hostId: rpcLocalHostId, internalPort: rpcPortLocal })` — no `ssl` option, as for `peer-local`. It bypasses the proxy, so a pruned node's missing blocks are not fetched there.
 
 **`peer-local` is a binding, not an interface, and dependents have to know the difference.** bitcoind plain-`bind`s container port 58333 and `whitebind`s 58334. The `peer` interface maps onto the first; the `peer-local` host publishes the second with no exported interface, which keeps it on loopback and the LXC bridge — never the LAN, never the internet. A dependent that pulls historical blocks over p2p (electrs, NBXplorer) resolves it with `sdk.host.getBridgeAddress({ hostId: peerLocalHostId, internalPort: peerPortLocal })` and connects with `noban`, `download`, and `mempool` permissions, exempt from inbound eviction and from the upload-target cutoff. Both exemptions presuppose an inbound slot to take. bitcoind reserves 11 connections for its own outbound peers, so below 12 there is no inbound capacity at all; and because Core protects up to 28 candidates before it will evict any of them, a full node cannot evict one to seat a whitelisted arrival either until it holds roughly 29 inbound peers — under that the connection is dropped at accept whatever its permissions. The config field floors at 40, the smallest value that leaves those 29 slots. Pointed at `peer` instead, it lands on the plain bind with no permissions, in the same pool as anonymous inbound peers.
 
@@ -160,16 +165,10 @@ There is no setup wizard, no credential to enter, and no task raised at install 
 2. **Seeded divergences.** The ZeroMQ publishers and `blockfilterindex` are switched on because dependent services need them, `i2psam` points at the embedded router, `dbcache` and `dbbatchsize` are scaled to system RAM for the duration of the sync, and `assumevalid` is pinned.
 3. **Every init repairs all three models.** Install, update, and restore each merge `store.json`, `i2pd.conf`, and `bitcoin.conf`, which fills in missing keys and corrects invalid ones. An update is therefore how a new enforced value reaches an existing install.
 4. **`externalip` is derived, not asked for.** It follows whatever addresses are published on the peer interface, so adding a Tor address there is what makes the node advertise it and what turns Tor into a running dependency.
-5. **Every start** runs `nocow` and `clean-chainstate-old` before bitcoind, and `chain-recovery` immediately after RPC answers.
+5. **Every start** runs `nocow` and `clean-chainstate-old` before bitcoind.
 6. **When sync completes**, `synced-true` posts a Sync Complete notification and clears the two cache settings. It fires once per data directory; a reindex resets the flag, so it fires again when that finishes.
 
-### First start after a flavor switch
-
-Bitcoin Core and the Bitcoin Knots flavors share the `bitcoind` package id, and therefore one data directory — switching between them keeps the synced chain. bitcoind also persists a validity verdict for every block it has evaluated, trusts those verdicts verbatim at startup, and does not record which consensus rules produced them. Around a BIP-110 (RDTS) chain split that inheritance is a hazard in both directions; only one direction lands here, because Bitcoin Core never enforces RDTS.
-
-`store.json` carries `rdtsEnforcedLastRun`, which every flavor writes on every start and this one always writes `false`. Finding anything else — `true` from the enforcing flavor, or no marker at all on a data directory last advanced by a package version predating it — is read as a change of enforcement regime, and the `chain-recovery` oneshot then runs `reconsiderblock` on every invalid chain tip so those branches are re-evaluated under this binary's rules. Reconnection is a full validation, so a genuinely invalid branch re-flags itself, and with no invalid tips the pass is a no-op.
-
-The oneshot depends only on `bitcoind`, so it never holds up the service, and every consequential outcome posts a notification. Two things it cannot do. A tip whose fork point lies below the prune horizon is skipped, because reorganizing onto it would need blocks the node no longer stores; the notification for that points at Reindex Blockchain, which on a pruned node means re-downloading the chain. And clearing a verdict only lets the node _accept_ a chain — actually following it still requires peers serving it.
+A switch from Bitcoin Core 28.x–31.x, or from **Bitcoin Knots (Legacy)** — the StartOS 0.3.5.1 Knots as the 0.4.0 update carries it over — keeps the data directory and runs as an update. Coming from Core, the mempool policy keys are reset so Knots' defaults apply; coming from Legacy, the config is kept as written. Bitcoin Knots (RDTS) is refused: it follows a different chain.
 
 ## Actions
 
@@ -179,7 +178,7 @@ Twenty-five actions, twenty-three of them user-facing. The OS already carries ea
 
 The four configuration actions. Each writes only the fields it presents, and each costs seconds plus a restart. All are safe to re-run; the form is pre-filled from the current file, so re-running without editing is a no-op.
 
-- **Other Settings** carries the two consequential ones. Turning pruning **off** sets the reindex flag, so the next start rebuilds the databases from the blocks already on disk. Turning it **on** moves RPC behind the proxy and forces `txindex` off.
+- **Other Settings** carries the two consequential ones. Turning pruning **off** sets the reindex flag, so the next start rebuilds the databases from the blocks already on disk. Turning it **on** forces `txindex` off and has the proxy fetch pruned blocks.
 - **Peer Settings** is where the embedded I2P router is switched on and off; turning the SAM proxy off here stops the router, swaps the I2P health check for a disabled placeholder, and drops `i2p` from Onlynet if it was selected. It refuses the submission outright when `i2p` is the only network in Onlynet, the one case where dropping it would widen the node rather than narrow it.
 - **Mempool Settings** and **RPC Settings** are plain field edits with no side effects beyond the restart.
 
@@ -199,14 +198,14 @@ Both set a flag in `store.json` and then restart the node if it is running, or t
 
 Four recovery actions for a corrupted file, each requiring the service to be stopped because bitcoind holds these open while running. Each deletes one thing and nothing else; the node recreates it on the next start.
 
-| Action                   | Removes                  | Cost of the rebuild                          |
-| ------------------------ | ------------------------ | -------------------------------------------- |
-| Delete Peer List         | `peers.dat`              | None — peers are rediscovered                |
-| Delete Transaction Index | `indexes/txindex`        | A full re-index over the chain on next start |
-| Delete Coinstats Index   | `indexes/coinstats`      | A full re-index over the chain on next start |
-| Delete Block Filter Index | `indexes/blockfilter`   | A rebuild on next start if block filters are on; on a pruned node, Reindex Blockchain |
+| Action                    | Removes                  | Cost of the rebuild                                                                   |
+| ------------------------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| Delete Peer List          | `peers.dat`              | None — peers are rediscovered                                                         |
+| Delete Transaction Index  | `indexes/txindex`        | A full re-index over the chain on next start                                          |
+| Delete Coinstats Index    | `indexes/coinstatsindex` | A full re-index over the chain on next start                                          |
+| Delete Block Filter Index | `indexes/blockfilter`    | A rebuild on next start if block filters are on; on a pruned node, Reindex Blockchain |
 
-Knots 29 keeps the coinstats index in `indexes/coinstats`; `indexes/coinstatsindex` is the Core and Knots 30+ name, which this action used to target and so failed. All four are idempotent: deleting a file that is already gone succeeds.
+All four are idempotent: deleting a file that is already gone succeeds.
 
 ### Download UTXO Snapshot (assumeutxo)
 
@@ -227,10 +226,10 @@ A read-only snapshot for diagnosis: peer counts split inbound and outbound, bloc
 Knots' built-in wallet, surfaced as actions. All nine are grouped under **Wallet**, all are **only available while the service is running**, and **all nine disappear entirely when `disablewallet` is on** — so a node configured without a wallet shows none of them.
 
 - **Select Wallet** decides which wallet every other action in the group operates on, and its description names the current selection. The default is the historical hardcoded wallet name, so an existing install is unchanged.
-- **Get Balance** and **Get Address** read; Get Address returns a new segwit address each time.
+- **Get Balance** and **Get Address** read; Get Balance lists the trusted, untrusted-pending and immature balances as separate copyable fields, and Get Address returns a new segwit address each time, copyable and as a QR code.
 - **Send Coins** and **Send All Coins** spend. Both are irreversible once broadcast.
-- **Sign Message** signs with one of the wallet's addresses.
-- **Backup wallet** writes the wallet to a file **so that StartOS's own backup captures it** — the wallet's live database is not otherwise in a backup-safe state. **Restore wallet** reads that file back, and **Remove wallet** deletes the selected wallet from the node.
+- **Sign Message** signs with one of the wallet's addresses. It, Send Coins and Send All Coins return the signature or transaction ID in a copyable field.
+- **Backup wallet** writes the wallet to a file **so that StartOS's own backup captures it** — the wallet's live database is not otherwise in a backup-safe state. It asks for confirmation, because it overwrites that wallet's previous backup file. **Restore wallet** reads that file back, also after confirmation, and refuses if a wallet of that name still exists; and **Remove wallet** deletes the selected wallet from the node.
 
 ### Prioritize Transaction
 
@@ -241,7 +240,7 @@ Raises or lowers a transaction's effective fee in this node's own mempool, using
 
 ### Hidden: Auto-Configure, Create RPC Credentials
 
-Both are `visibility: 'hidden'` — not user-facing, and never something to tell a user to run. **Auto-Configure** is how a dependent service requests configuration; the surface it can reach is deliberately narrow (block filters, `blocknotify`, coinstats index, bloom filters, pruning, `txindex`, ZeroMQ), and `raw` — with `rpcauth`, `whitelist`, `externalip`, and the peer lists — is unreachable from it. **Create RPC Credentials** lets a dependent register an `rpcauth` user with a password it already holds, subject to a minimum length the user cannot override.
+Both are `visibility: 'hidden'` — not user-facing, and never something to tell a user to run. **Auto-Configure** is how a dependent service requests configuration; the surface it can reach is deliberately narrow (block filters, `blocknotify`, `blockreservedweight`, coinstats index, bloom filters, pruning, `txindex`, enabling the wallet, ZeroMQ), and `raw` — with `rpcauth`, `whitelist`, `externalip`, and the peer lists — is unreachable from it. **Create RPC Credentials** lets a dependent register an `rpcauth` user with a password it already holds, subject to a minimum length the user cannot override.
 
 ## Tasks
 
@@ -267,7 +266,7 @@ Eight checks at most, and three of them can never report a failure: they describ
 | `i2p`           | I2P             | nothing — a `disabled` placeholder in place of the daemon check                              | —           | while I2P is off, or excluded by `onlynet` |
 | `tor`           | Tor             | Tor's installed and running state, and whether an onion address is published                 | —           | always                                     |
 | `clearnet`      | Clearnet        | Whether a non-onion address is published                                                     | —           | always                                     |
-| `proxy`         | RPC Proxy       | That the proxy's port is listening                                                           | —           | while the node is pruned                   |
+| `proxy`         | RPC Proxy       | That the proxy's port is listening                                                           | —           | always                                     |
 
 **`bitcoind` failing** means the RPC port never opened. The cookie is deleted at the start of every run and recreated by bitcoind itself, so a check still waiting on it is one where bitcoind is not reaching the point of serving RPC — read the service logs for a startup or database error rather than looking for a networking fault.
 
@@ -312,7 +311,7 @@ Both volumes are copied wholesale — `sdk.Backups.ofVolumes('main', 'i2pd')`. T
 9. **The I2P router is emulated on riscv64**, which has no upstream i2pd image.
 10. **This node follows the SHA256 chain**, the chain Bitcoin Core follows, with Knots' policy defaults and consensus identical to Bitcoin Core.
 11. **Every Wallet action disappears when `disablewallet` is on**, and all of them require the service to be running.
-12. **The repo maintains one branch per flavor**, each published as the same `bitcoind` package. Release notes and pinned upstream versions differ between them.
+12. **This repo is one flavor.** The Knots packages it was forked from maintain one branch per flavor; here `master` of the pre-RDTS package is the `upstream` remote, and only this flavor is published from this repo.
 
 ---
 
@@ -328,7 +327,7 @@ architectures:
 subcontainers:
   - bitcoind-sub # the bitcoind daemon; the one to attach to
   - i2pd-sub # purplei2p/i2pd; only while I2P is enabled
-  - proxy-sub # btc-rpc-proxy; only while the node is pruned
+  - proxy-sub # btc-rpc-proxy; fronts 8332 on every node
 volumes:
   main: /root/.bitcoin
   i2pd: /home/i2pd
@@ -340,7 +339,7 @@ startos_managed_env_vars: []
 dependencies:
   - tor # optional; a running dependency only when onion connectivity is configured
 interfaces:
-  rpc: { type: api, port: 8332 }
+  rpc: { type: api, port: 8332 } # the proxy, JSON-RPC only; 58332 is bitcoind itself with REST, bridge-only, no interface
   peer: { type: p2p, port: 8333 } # container 58333; 58334 is bridge-only, no interface
   zmq-block: { type: api, port: 28332 } # only when ZeroMQ is enabled
   zmq-tx: { type: api, port: 28333 } # only when ZeroMQ is enabled
@@ -381,5 +380,5 @@ health_checks:
   - i2p # displayed "I2P"; the disabled placeholder otherwise
   - tor
   - clearnet
-  - proxy # displayed "RPC Proxy"; only while pruned
+  - proxy # displayed "RPC Proxy"
 ```

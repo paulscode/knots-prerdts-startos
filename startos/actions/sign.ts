@@ -65,7 +65,6 @@ export const signMessage = sdk.Action.withInput(
 
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     const res = await sdk.SubContainer.withTemp(
@@ -81,11 +80,11 @@ export const signMessage = sdk.Action.withInput(
         .mountAssets({ subpath: null, mountpoint }),
       'sign-message',
       async (subc) => {
-        await ensureWalletLoaded(subc, { prune: !!conf.prune, wallet })
+        await ensureWalletLoaded(subc, { wallet })
 
         return await subc.execFail([
           'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune, wallet }),
+          ...rpcArgs({ wallet }),
           'signmessage',
           `${address}`,
           `${message}`,
@@ -96,10 +95,15 @@ export const signMessage = sdk.Action.withInput(
     return {
       version: '1',
       title: i18n('Success'),
-      message: i18n('Your signature: ${stdout}', {
-        stdout: res.stdout as string,
-      }),
-      result: null,
+      message: i18n('Your signature is below.'),
+      result: {
+        type: 'single',
+        value: String(res.stdout).trim(),
+        copyable: true,
+        qr: false,
+        launchable: false,
+        masked: false,
+      },
     }
   },
 )

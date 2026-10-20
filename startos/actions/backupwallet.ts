@@ -21,7 +21,10 @@ export const backupwallet = sdk.Action.withoutInput(
     return {
       name: i18n('Backup wallet'),
       description: i18n('Backup wallet in a file for startOS system backup'),
-      warning: null,
+      warning: i18n(
+        'Replaces any earlier backup of wallet ${wallet} with a copy of the wallet as it is now.',
+        { wallet: walletLabel(await getSelectedWallet(effects)) },
+      ),
       allowedStatuses: 'only-running',
       group: i18n('Wallet'),
       visibility: !conf?.raw?.disablewallet
@@ -34,7 +37,6 @@ export const backupwallet = sdk.Action.withoutInput(
   async ({ effects }) => {
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     // The default wallet '' has no path-safe name; back it up as default.dat
@@ -55,11 +57,11 @@ export const backupwallet = sdk.Action.withoutInput(
         .mountAssets({ subpath: null, mountpoint }),
       'Backup wallet',
       async (subc) => {
-        await ensureWalletLoaded(subc, { prune: !!conf.prune, wallet })
+        await ensureWalletLoaded(subc, { wallet })
 
         return await subc.execFail([
           'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune, wallet }),
+          ...rpcArgs({ wallet }),
           'backupwallet',
           backupFile,
         ])

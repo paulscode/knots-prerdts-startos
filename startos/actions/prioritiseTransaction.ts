@@ -1,4 +1,3 @@
-import { bitcoinConfFile } from '../fileModels/bitcoin.conf'
 import { sdk } from '../sdk'
 import { bitcoinCliArgs, bitcoinMounts } from '../utils'
 import { i18n } from '../i18n'
@@ -58,7 +57,6 @@ export const prioritiseTransaction = sdk.Action.withInput(
 
   // execution function
   async ({ effects, input }) => {
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const { txid, prioritydelta, deltafee } = input
 
     const prioritisetransaction = await sdk.SubContainer.withTemp(
@@ -68,7 +66,7 @@ export const prioritiseTransaction = sdk.Action.withInput(
       'prioritisetransaction',
       async (subc) => {
         return await subc.execFail([
-          ...bitcoinCliArgs({ prune: !!conf.prune }),
+          ...bitcoinCliArgs(),
           'prioritisetransaction',
           `${txid}`,
           `${prioritydelta}`,

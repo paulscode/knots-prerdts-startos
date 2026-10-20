@@ -8,9 +8,7 @@ import {
   peerPortInternal,
   peerPortLocal,
   rpcallowip,
-  rpcallowipPruned,
   rpcbind,
-  rpcbindPruned,
   rpccookiefile,
   zmqBundle,
 } from '../utils'
@@ -48,176 +46,155 @@ const iniBoolean = z
   .catch(undefined)
 
 export const minPrune = 550
-
-/**
- * Blocks to keep, in MiB, on a fresh install.
- *
- * Not bitcoind's 550 MiB floor, which is the smallest value it accepts rather
- * than a size to run on. Raising it costs disk and buys fewer blocks for a
- * dependent indexer to re-fetch through the proxy.
- *
- * This package prunes on every fresh install, where the official package it
- * forks prunes only on a disk below `archivalMin`. The difference is what the
- * two are for: that one is meant to be your node, and this one is a companion
- * that sits beside it, so a second full copy of the same chain is the outcome
- * almost nobody installing it wants. Pruning costs a dependent nothing here,
- * because main.ts puts btc-rpc-proxy in front of the node whenever this is
- * non-zero, and the proxy fetches a pruned block from peers on demand.
- *
- * Set the Pruning field to 0 for a full archival node. The field's minimum
- * stays disk-aware, so archival is offered only where the disk could hold it.
- */
-export const defaultPruneMib = 5000
 export const minConnections = 40
 
 const validNets = ['ipv4', 'ipv6', 'onion', 'i2p'] as const
 const onlyNetOption = z.enum(validNets)
 type ValidNets = z.infer<typeof onlyNetOption>
 
-export const shape = z
-  .looseObject({
-    // RPC enforced
-    rpcbind: z.enum([rpcbind, rpcbindPruned]).catch(rpcbind),
-    rpcallowip: z.enum([rpcallowip, rpcallowipPruned]).catch(rpcallowip),
-    rpcuser: z.undefined().optional().catch(undefined),
-    rpcpassword: z.undefined().optional().catch(undefined),
-    rpccookiefile: z.literal(rpccookiefile).catch(rpccookiefile),
-    // Peers enforced
-    listen: z.literal(true).catch(true),
-    bind: z
-      .union([z.array(z.string()).transform((a) => a.at(-1)!), z.string()])
-      .catch(`0.0.0.0:${peerPortInternal}`),
-    whitebind: z
-      .literal(`0.0.0.0:${peerPortLocal}`)
-      .catch(`0.0.0.0:${peerPortLocal}`),
+export const shape = z.looseObject({
+  // RPC enforced
+  rpcbind: z.literal(rpcbind).catch(rpcbind),
+  rpcallowip: z.literal(rpcallowip).catch(rpcallowip),
+  rpcuser: z.undefined().optional().catch(undefined),
+  rpcpassword: z.undefined().optional().catch(undefined),
+  rpccookiefile: z.literal(rpccookiefile).catch(rpccookiefile),
+  rest: z.literal(true).catch(true),
+  // Peers enforced
+  listen: z.literal(true).catch(true),
+  bind: z
+    .union([z.array(z.string()).transform((a) => a.at(-1)!), z.string()])
+    .catch(`0.0.0.0:${peerPortInternal}`),
+  whitebind: z
+    .literal(`0.0.0.0:${peerPortLocal}`)
+    .catch(`0.0.0.0:${peerPortLocal}`),
 
-    // RPC
-    rpcauth: iniStringArray,
-    rpcservertimeout: iniNumber,
-    rpcthreads: iniNumber,
-    rpcworkqueue: iniNumber,
-    deprecatedrpc: z.literal('create_bdb').catch('create_bdb'),
+  // RPC
+  rpcauth: iniStringArray,
+  rpcservertimeout: iniNumber,
+  rpcthreads: iniNumber,
+  rpcworkqueue: iniNumber,
+  deprecatedrpc: z.literal('create_bdb').catch('create_bdb'),
 
-    // Mempool
-    persistmempool: iniBoolean,
-    maxmempool: iniNumber,
-    mempoolexpiry: iniNumber,
-    mempoolfullrbf: iniBoolean,
-    datacarrier: iniBoolean,
-    datacarriersize: iniNumber,
-    permitbaremultisig: iniBoolean,
-    rejectparasites: iniBoolean,
-    rejecttokens: iniBoolean,
-    minrelaytxfee: iniNumber,
-    bytespersigop: iniNumber,
-    bytespersigopstrict: iniNumber,
-    limitancestorcount: iniNumber,
-    limitancestorsize: iniNumber,
-    limitdescendantcount: iniNumber,
-    limitdescendantsize: iniNumber,
-    permitbarepubkey: iniBoolean,
-    maxscriptsize: iniNumber,
-    datacarriercost: iniNumber,
-    acceptnonstddatacarrier: iniBoolean,
-    dustrelayfee: iniNumber,
-    permitephemeral: iniString,
-    permitbareanchor: iniBoolean,
-    permitbaredatacarrier: iniBoolean,
-    maxtxlegacysigops: iniNumber,
-    acceptunknownwitness: iniBoolean,
-    minrelaycoinblocks: iniNumber,
-    minrelaymaturity: iniNumber,
-    mempoolreplacement: z
-      .enum(['0', 'fee,optin', 'fee,-optin'])
-      .optional()
-      .catch(undefined),
-    mempooltruc: z
-      .enum(['reject', 'accept', 'enforce'])
-      .optional()
-      .catch(undefined),
+  // Mempool
+  persistmempool: iniBoolean,
+  maxmempool: iniNumber,
+  mempoolexpiry: iniNumber,
+  mempoolfullrbf: iniBoolean,
+  datacarrier: iniBoolean,
+  datacarriersize: iniNumber,
+  permitbaremultisig: iniBoolean,
+  rejectparasites: iniBoolean,
+  rejecttokens: iniBoolean,
+  minrelaytxfee: iniNumber,
+  bytespersigop: iniNumber,
+  bytespersigopstrict: iniNumber,
+  limitancestorcount: iniNumber,
+  // Removed in Core 31 (cluster mempool: -limitclustersize); the node ignores it, so it is not offered and a value on disk is dropped
+  limitancestorsize: z.undefined().optional().catch(undefined),
+  limitdescendantcount: iniNumber,
+  // Removed in Core 31 (cluster mempool: -limitclustersize); the node ignores it, so it is not offered and a value on disk is dropped
+  limitdescendantsize: z.undefined().optional().catch(undefined),
+  permitbarepubkey: iniBoolean,
+  maxscriptsize: iniNumber,
+  datacarriercost: iniNumber,
+  acceptnonstddatacarrier: iniBoolean,
+  dustrelayfee: iniNumber,
+  permitephemeral: iniString,
+  permitbareanchor: iniBoolean,
+  permitbaredatacarrier: iniBoolean,
+  maxtxlegacysigops: iniNumber,
+  acceptunknownwitness: iniBoolean,
+  minrelaycoinblocks: iniNumber,
+  minrelaymaturity: iniNumber,
+  mempoolreplacement: z
+    .enum(['0', 'fee,optin', 'fee,-optin'])
+    .optional()
+    .catch(undefined),
+  mempooltruc: z
+    .enum(['reject', 'accept', 'enforce'])
+    .optional()
+    .catch(undefined),
 
-    // Peers
-    // Deliberately not onlyNetOption: there is no safe default for this field,
-    // so a value the enum does not know is kept rather than caught away. The
-    // catch would delete the whole restriction and put the node on clearnet.
-    onlynet: iniStringArray,
-    externalip: iniStringArray,
-    whitelist: iniStringArray,
-    v2transport: iniBoolean,
-    connect: iniStringArray,
-    addnode: iniStringArray,
-    maxconnections: z
-      .union([
-        z.array(z.string()).transform((a) => Number(a.at(-1))),
-        z.string().transform(Number),
-        z.number(),
-      ])
-      .pipe(z.number())
-      .transform((v) => (v < minConnections ? minConnections : v))
-      .optional()
-      .catch(undefined),
-    blocksonly: iniBoolean,
-    i2psam: z.literal(i2PSamAddress).optional().catch(undefined),
-    i2pacceptincoming: iniBoolean,
+  // Peers
+  // Deliberately not onlyNetOption: there is no safe default for this field,
+  // so a value the enum does not know is kept rather than caught away. The
+  // catch would delete the whole restriction and put the node on clearnet.
+  onlynet: iniStringArray,
+  externalip: iniStringArray,
+  whitelist: iniStringArray,
+  v2transport: iniBoolean,
+  connect: iniStringArray,
+  addnode: iniStringArray,
+  maxconnections: z
+    .union([
+      z.array(z.string()).transform((a) => Number(a.at(-1))),
+      z.string().transform(Number),
+      z.number(),
+    ])
+    .pipe(z.number())
+    .transform((v) => (v < minConnections ? minConnections : v))
+    .optional()
+    .catch(undefined),
+  blocksonly: iniBoolean,
+  i2psam: z.literal(i2PSamAddress).optional().catch(undefined),
+  i2pacceptincoming: iniBoolean,
 
-    // Wallet
-    disablewallet: iniBoolean,
-    avoidpartialspends: iniBoolean,
-    discardfee: iniNumber,
+  // Wallet
+  disablewallet: iniBoolean,
+  avoidpartialspends: iniBoolean,
+  discardfee: iniNumber,
 
-    // ZMQ
-    zmqpubrawblock: iniString,
-    zmqpubhashblock: iniString,
-    zmqpubrawtx: iniString,
-    zmqpubhashtx: iniString,
-    zmqpubsequence: iniString,
+  // ZMQ
+  zmqpubrawblock: iniString,
+  zmqpubhashblock: iniString,
+  zmqpubrawtx: iniString,
+  zmqpubhashtx: iniString,
+  zmqpubsequence: iniString,
 
-    // Performance Tuning
-    dbcache: iniNumber,
-    dbbatchsize: iniNumber,
+  // Performance Tuning
+  dbcache: iniNumber,
+  dbbatchsize: iniNumber,
 
-    // Block Template & Reconstruction
-    blockmaxsize: iniNumber,
-    blockmaxweight: iniNumber,
-    blockreconstructionextratxn: iniNumber,
-    blockreconstructionextratxnsize: iniNumber,
+  // Block Template & Reconstruction
+  blockmaxsize: iniNumber,
+  blockmaxweight: iniNumber,
+  blockreconstructionextratxn: iniNumber,
+  blockreconstructionextratxnsize: iniNumber,
 
-    // Other
-    softwareexpiry: iniNumber,
-    blocknotify: iniString,
-    prune: z
-      .union([
-        z.array(z.string()).transform((a) => Number(a.at(-1))),
-        z.string().transform(Number),
-        z.number(),
-      ])
-      .pipe(z.number())
-      .transform((v) => (v > 0 && v < minPrune ? minPrune : v))
-      .catch(0),
-    coinstatsindex: iniBoolean,
-    txindex: iniBoolean,
-    peerbloomfilters: iniBoolean,
-    blockfilterindex: z
-      .union([
-        z.literal('basic'),
-        z.union([
-          z.string().transform((s) => !!Number(s)),
-          z.number().transform((n) => !!n),
-          z.boolean(),
-        ]),
-      ])
-      .optional()
-      .catch(undefined),
-    peerblockfilters: iniBoolean,
-    natpmp: iniBoolean,
-    // Must-be-absent: this build never enforces RDTS, and a switch from
-    // `#knots` can leave the key behind. Coercing it away here means every
-    // write strips it, including on installs that crossed before the
-    // arrival migrations below existed. Not in `fullConfigSpec`.
-    consensusrules: z.undefined().optional().catch(undefined),
-    maxuploadtarget: iniNumber,
-  })
-  .loose()
+  // Other
+  softwareexpiry: iniNumber,
+  blocknotify: iniString,
+  blockreservedweight: iniNumber,
+  prune: z
+    .union([
+      z.array(z.string()).transform((a) => Number(a.at(-1))),
+      z.string().transform(Number),
+      z.number(),
+    ])
+    .pipe(z.number())
+    .transform((v) => (v > 0 && v < minPrune ? minPrune : v))
+    .catch(0),
+  coinstatsindex: iniBoolean,
+  txindex: iniBoolean,
+  peerbloomfilters: iniBoolean,
+  blockfilterindex: z
+    .union([
+      z.literal('basic'),
+      z.union([
+        z.string().transform((s) => !!Number(s)),
+        z.number().transform((n) => !!n),
+        z.boolean(),
+      ]),
+    ])
+    .optional()
+    .catch(undefined),
+  peerblockfilters: iniBoolean,
+  natpmp: iniBoolean,
+  // Must-be-absent: this build logs "Ignoring unknown configuration value" for it on every start.
+  consensusrules: z.undefined().optional().catch(undefined),
+  maxuploadtarget: iniNumber,
+})
 
 function stringifyPrimitives(a: unknown): any {
   if (a && typeof a === 'object') {
@@ -237,6 +214,25 @@ const { InputSpec, Value, Variants, List } = sdk
 
 export const diskUsage = utils.once(() => diskusage.check('/'))
 export const archivalMin = 900_000_000_000
+
+/**
+ * Blocks to keep, in MiB, on a fresh install.
+ *
+ * Not bitcoind's 550 MiB floor, which is the smallest value it accepts rather
+ * than a size to run on. Raising it costs disk and buys fewer blocks for a
+ * dependent indexer to re-fetch through the proxy.
+ *
+ * This package prunes on every fresh install, where the drop-in package prunes
+ * only on a disk below `archivalMin`. The difference is what the two are for:
+ * that one is meant to be your node, and this one is a companion that sits
+ * beside it, so a second full copy of the same chain is the outcome almost
+ * nobody installing it wants. Pruning costs a dependent nothing here, because
+ * btc-rpc-proxy in front of the node fetches a pruned block from peers on demand.
+ *
+ * Set the Pruning field to 0 for a full archival node. The field's minimum
+ * stays disk-aware, so archival is offered only where the disk could hold it.
+ */
+export const defaultPruneMib = 5000
 
 // Override defaults (diverging from upstream Bitcoin Knots)
 export const defaultDatacarriercost = 1
@@ -259,7 +255,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
   }),
   maxmempool: Value.number({
     name: i18n('Max Mempool Size'),
-    description: i18n('Keep the transaction memory pool below <n> megabytes.'),
+    description: i18n('Keep the transaction memory pool below this size.'),
     required: false,
     default: null,
     min: 1,
@@ -270,7 +266,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
   mempoolexpiry: Value.number({
     name: i18n('Mempool Expiration'),
     description: i18n(
-      'Do not keep transactions in the mempool longer than <n> hours.',
+      'Do not keep transactions in the mempool longer than this many hours.',
     ),
     required: false,
     default: null,
@@ -308,7 +304,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     max: 10_000,
     integer: true,
     units: i18n('bytes'),
-    footnote: `${i18n('Default')}: 83 bytes`,
+    footnote: `${i18n('Default')}: 42 bytes`,
   }),
   permitbaredatacarrier: Value.triState({
     name: i18n('Permit Bare Datacarrier'),
@@ -330,14 +326,12 @@ export const fullConfigSpec = sdk.InputSpec.of({
     // fileToForm, not as this default, so saving the form cannot turn it on
     // behind the user's back.
     default: true,
-    // Knots' own DEFAULT_REJECT_TOKENS, false at 29.3.knots20260507
-    // (src/policy/policy.h), which is what an unset bitcoin.conf gets.
-    footnote: `${i18n('Default')}: false`,
+    footnote: `${i18n('Default')}: true`,
   }),
   mempoolreplacement: Value.select({
     name: i18n('Mempool Replacement'),
     description: i18n(
-      'Set to disabled to disable RBF entirely, "fee,optin" to honour RBF opt-out signal, or "fee,-optin" to always RBF aka full RBF',
+      "Which unconfirmed transactions a higher-fee transaction may replace.\n- Default: Bitcoin Knots' own default, shown below.\n- Disabled: no replacement at all.\n- fee,optin: only transactions that signal they can be replaced.\n- fee,-optin: any transaction (full RBF).",
     ),
     default: 'default',
     values: {
@@ -351,7 +345,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
   mempooltruc: Value.select({
     name: i18n('Mempool TRUC'),
     description: i18n(
-      'Behaviour for transactions requesting TRUC limits: "reject" the transactions entirely, "accept" them just like any other, or "enforce" to impose their requested restrictions',
+      "How to treat transactions that request TRUC limits.\n- Default: Bitcoin Knots' own default, shown below.\n- Reject: refuse them entirely.\n- Accept: relay them like any other transaction.\n- Enforce: apply the restrictions they request.",
     ),
     default: 'default',
     values: {
@@ -429,48 +423,24 @@ export const fullConfigSpec = sdk.InputSpec.of({
   limitancestorcount: Value.number({
     name: i18n('Max Ancestor Count'),
     description: i18n(
-      'Do not accept transactions if number of in-mempool ancestors is <n> or more',
+      'Do not accept a transaction that has this many in-mempool ancestors or more.',
     ),
     default: null,
     required: false,
     min: 0,
     integer: true,
     footnote: `${i18n('Default')}: 25`,
-  }),
-  limitancestorsize: Value.number({
-    name: i18n('Max Ancestor Size'),
-    description: i18n(
-      'Do not accept transactions whose size with all in-mempool ancestors exceeds <n> kilobytes',
-    ),
-    default: null,
-    required: false,
-    min: 0,
-    integer: true,
-    units: 'kB',
-    footnote: `${i18n('Default')}: 101 kB`,
   }),
   limitdescendantcount: Value.number({
     name: i18n('Max Descendant Count'),
     description: i18n(
-      'Do not accept transactions if any ancestor would have <n> or more in-mempool descendants',
+      'Do not accept a transaction if any of its ancestors would then have this many in-mempool descendants or more.',
     ),
     default: null,
     required: false,
     min: 0,
     integer: true,
     footnote: `${i18n('Default')}: 25`,
-  }),
-  limitdescendantsize: Value.number({
-    name: i18n('Max Descendant Size'),
-    description: i18n(
-      'Do not accept transactions if any ancestor would have more than <n> kilobytes of in-mempool descendants',
-    ),
-    default: null,
-    required: false,
-    min: 0,
-    integer: true,
-    units: 'kB',
-    footnote: `${i18n('Default')}: 101 kB`,
   }),
   permitbarepubkey: Value.triState({
     name: i18n('Permit Bare Pubkey'),
@@ -497,7 +467,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     required: true,
     min: 0,
     integer: true,
-    footnote: `${i18n('Default')}: 4`,
+    footnote: `${i18n('Default')}: 1`,
   }),
   acceptnonstddatacarrier: Value.triState({
     name: i18n('Accept Non-Standard Datacarrier'),
@@ -548,13 +518,17 @@ export const fullConfigSpec = sdk.InputSpec.of({
   }),
 
   // === OTHER ===
+  // No built-in value here: each release of the node carries its own expiry,
+  // and a number in this form would be written to bitcoin.conf on every save,
+  // pinning the node to whatever release the form was written for (it used to
+  // say 1825593420, Knots 29.3's 2027-11-07).
   softwareexpiry: Value.number({
     name: i18n('Software Expiry'),
     description: i18n(
-      'Stop working after this POSIX timestamp (set to 0 to disable)',
+      "Stop working after this POSIX timestamp. Leave empty for this release's built-in expiry; set 0 to disable.",
     ),
-    default: 1825593420,
-    required: true,
+    default: null,
+    required: false,
     integer: true,
     units: i18n('timestamp'),
   }),
@@ -572,7 +546,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
       name: i18n('Transaction Index'),
       default: null,
       description: i18n(
-        'By enabling Transaction Index (txindex) Bitcoin Knots will build a complete transaction index. This allows Bitcoin Knots to access any transaction with commands like `getrawtransaction`.',
+        'By enabling Transaction Index (txindex) Bitcoin Knots will build a complete transaction index. This allows Bitcoin Knots to access any transaction with commands like getrawtransaction.',
       ),
       footnote: `${i18n('Default')}: false`,
       disabled:
@@ -584,8 +558,21 @@ export const fullConfigSpec = sdk.InputSpec.of({
     required: false,
     default: null,
     description: i18n(
-      'Execute an arbitrary command when the best block changes',
+      'A shell command Bitcoin runs inside its container each time the best block changes. %s in the command is replaced by the block hash.',
     ),
+  }),
+  blockreservedweight: Value.number({
+    name: i18n('Block Reserved Weight'),
+    description: i18n(
+      'Block weight that block templates leave free for the coinbase transaction. Mining software that builds a large coinbase, such as a pool paying many outputs, needs more than the default.',
+    ),
+    required: false,
+    default: null,
+    min: 2_000,
+    max: 4_000_000,
+    integer: true,
+    units: 'WU',
+    footnote: `${i18n('Default')}: 8000 WU`,
   }),
   templateconstruction: Value.object(
     {
@@ -719,7 +706,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     min: 0,
     integer: true,
     units: 'MiB',
-    footnote: `${i18n('Default')}: 450 MiB`,
+    footnote: `${i18n('Default')}: 100 to 2048 MiB, depending on RAM`,
   }),
   dbbatchsize: Value.number({
     name: i18n('Database Batch'),
@@ -793,7 +780,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
   onlynet: Value.multiselect({
     name: i18n('Onlynet'),
     description: i18n(
-      'Make automatic outbound connections only to the selected networks. Inbound and manual connections are not affected by this option.',
+      'Make automatic outbound connections only to the selected networks; with none selected, Bitcoin uses them all. Inbound and manual connections are not affected.\n- ipv4, ipv6: clearnet peers\n- onion (Tor): needs the Tor service\n- i2p: needs the I2P SAM Proxy',
     ),
     values: Object.fromEntries(
       validNets.map((n) => [n, n === 'onion' ? 'onion (Tor)' : n]),
@@ -806,13 +793,16 @@ export const fullConfigSpec = sdk.InputSpec.of({
   v2transport: Value.triState({
     name: i18n('Use V2 P2P Transport Protocol'),
     description: i18n(
-      'Enable or disable the use of BIP324 V2 P2P transport protocol.',
+      'Encrypt connections with peers that support it (BIP324), so your traffic is harder to observe. Peers without it still connect unencrypted.',
     ),
     default: null,
     footnote: `${i18n('Default')}: true`,
   }),
   connectpeer: Value.union({
     name: i18n('Connect Peer'),
+    description: i18n(
+      '- Add Node: connect to these nodes in addition to the peers Bitcoin finds itself.\n- Connect: connect only to these nodes. Bitcoin makes no other outbound connections.',
+    ),
     default: 'addnode',
     variants: Variants.of({
       connect: {
@@ -959,9 +949,7 @@ function fileToForm(
     bytespersigopstrict,
     maxtxlegacysigops,
     limitancestorcount,
-    limitancestorsize,
     limitdescendantcount,
-    limitdescendantsize,
     permitbarepubkey,
     maxscriptsize,
     datacarriercost,
@@ -984,6 +972,7 @@ function fileToForm(
     avoidpartialspends,
     discardfee,
     blocknotify,
+    blockreservedweight,
     prune,
     dbcache,
     dbbatchsize,
@@ -1032,9 +1021,7 @@ function fileToForm(
     bytespersigopstrict,
     maxtxlegacysigops,
     limitancestorcount,
-    limitancestorsize,
     limitdescendantcount,
-    limitdescendantsize,
     permitbarepubkey,
     maxscriptsize,
     datacarriercost,
@@ -1061,6 +1048,7 @@ function fileToForm(
       discardfee,
     },
     blocknotify,
+    blockreservedweight,
     templateconstruction: {
       blockmaxsize,
       blockmaxweight,
@@ -1137,9 +1125,7 @@ function formToFile(
     bytespersigopstrict,
     maxtxlegacysigops,
     limitancestorcount,
-    limitancestorsize,
     limitdescendantcount,
-    limitdescendantsize,
     permitbarepubkey,
     maxscriptsize,
     datacarriercost,
@@ -1157,6 +1143,7 @@ function formToFile(
     peerbloomfilters,
     blockfilters,
     blocknotify,
+    blockreservedweight,
     dbcache,
     dbbatchsize,
     zmqEnabled,
@@ -1208,9 +1195,10 @@ function formToFile(
     whitelist: raw?.whitelist?.filter((a) => !!a) as string[] | undefined,
     externalip: raw?.externalip?.filter((a) => !!a) as string[] | undefined,
 
-    // RPC (prune-derived)
-    rpcbind: prune ? rpcbindPruned : rpcbind,
-    rpcallowip: prune ? rpcallowipPruned : rpcallowip,
+    // RPC
+    rpcbind,
+    rpcallowip,
+    rest: true,
 
     // Mempool - 1:1 pass-through
     persistmempool: persistmempool ?? undefined,
@@ -1233,9 +1221,7 @@ function formToFile(
     bytespersigopstrict: bytespersigopstrict ?? undefined,
     maxtxlegacysigops: maxtxlegacysigops ?? undefined,
     limitancestorcount: limitancestorcount ?? undefined,
-    limitancestorsize: limitancestorsize ?? undefined,
     limitdescendantcount: limitdescendantcount ?? undefined,
-    limitdescendantsize: limitdescendantsize ?? undefined,
     permitbarepubkey: permitbarepubkey ?? undefined,
     maxscriptsize: maxscriptsize ?? undefined,
     datacarriercost,
@@ -1251,7 +1237,7 @@ function formToFile(
     discardfee: wallet?.discardfee ?? undefined,
 
     // Other
-    softwareexpiry,
+    softwareexpiry: softwareexpiry ?? undefined,
     txindex: prune ? false : (txindex ?? undefined),
     coinstatsindex: coinstatsindex ?? undefined,
     peerbloomfilters: peerbloomfilters ?? undefined,
@@ -1263,6 +1249,7 @@ function formToFile(
           ? 'basic'
           : false,
     blocknotify: blocknotify || undefined,
+    blockreservedweight: blockreservedweight ?? undefined,
     prune: prune ?? 0,
     dbcache: dbcache ?? undefined,
     dbbatchsize: dbbatchsize ?? undefined,

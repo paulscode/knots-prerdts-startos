@@ -1,5 +1,4 @@
 import { sdk } from '../sdk'
-import { bitcoinConfFile } from '../fileModels/bitcoin.conf'
 import { bitcoinCliArgs, bitcoinMounts, rootDir } from '../utils'
 import * as fs from 'fs/promises'
 import { SubContainer } from '@start9labs/start-sdk'
@@ -91,7 +90,6 @@ export const assumeutxo = sdk.Action.withInput(
       const rootfs = await assumeutxoSubc.rootfs
 
       try {
-        const conf = (await bitcoinConfFile.read().once())!
         await fs.mkdir(`${rootfs}/tmp/snap`, { recursive: true })
         await fs.rm(`${rootfs}${snapshotTempFile}`, {
           force: true,
@@ -125,7 +123,7 @@ export const assumeutxo = sdk.Action.withInput(
         const headersDeadline = Date.now() + 6 * 60 * 60 * 1000
         do {
           const getBlockHeaderRes = await assumeutxoSubc.exec([
-            ...bitcoinCliArgs({ prune: !!conf.prune }),
+            ...bitcoinCliArgs(),
             'getblockheader',
             block_840_000,
           ])
@@ -142,7 +140,7 @@ export const assumeutxo = sdk.Action.withInput(
 
         await assumeutxoSubc.execFail(
           [
-            ...bitcoinCliArgs({ prune: !!conf.prune }),
+            ...bitcoinCliArgs(),
             '-rpcclienttimeout=0',
             'loadtxoutset',
             `${rootDir}/${snapshotTempFile}`,

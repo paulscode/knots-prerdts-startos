@@ -10,7 +10,7 @@ export const deleteCoinstatsIndex = sdk.Action.withoutInput(
   async ({ effects }) => ({
     name: i18n('Delete Coinstats Index'),
     description: i18n(
-      'Deletes the Coinstats Index (coinstats) in case it gets corrupted.',
+      'Deletes the Coinstats Index (coinstatsindex) in case it gets corrupted.',
     ),
     warning: i18n(
       "The Coinstats Index will be rebuilt once Bitcoin Knots is started again, unless 'Coinstats Index' is disabled in the config settings. Please don't do this unless you fully understand what you are doing.",
@@ -22,7 +22,7 @@ export const deleteCoinstatsIndex = sdk.Action.withoutInput(
 
   // execution function
   async ({ effects }) => {
-    await deleteIndex(effects, 'coinstats')
+    await deleteIndex(effects, 'coinstatsindex')
 
     return {
       version: '1',

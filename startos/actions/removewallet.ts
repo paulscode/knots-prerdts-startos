@@ -37,7 +37,6 @@ export const removewallet = sdk.Action.withoutInput(
   async ({ effects }) => {
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     // Refuse to delete anything whose name can't be safely turned into a
@@ -67,12 +66,7 @@ export const removewallet = sdk.Action.withoutInput(
         .mountAssets({ subpath: null, mountpoint }),
       'Remove wallet',
       async (subc) => {
-        await subc.exec([
-          'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune }),
-          'unloadwallet',
-          wallet,
-        ])
+        await subc.exec(['bitcoin-cli', ...rpcArgs(), 'unloadwallet', wallet])
 
         const walletDir = await resolveWalletDir(subc, wallet)
         return await subc.execFail(['rm', '-rf', walletDir])

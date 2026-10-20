@@ -65,7 +65,6 @@ export const sendAllCoin = sdk.Action.withInput(
 
     const mountpoint = '/scripts'
 
-    const conf = (await bitcoinConfFile.read().const(effects))!
     const wallet = await getSelectedWallet()
 
     const res = await sdk.SubContainer.withTemp(
@@ -81,11 +80,11 @@ export const sendAllCoin = sdk.Action.withInput(
         .mountAssets({ subpath: null, mountpoint }),
       'sendallcoin',
       async (subc) => {
-        await ensureWalletLoaded(subc, { prune: !!conf.prune, wallet })
+        await ensureWalletLoaded(subc, { wallet })
 
         const result = await subc.execFail([
           'bitcoin-cli',
-          ...rpcArgs({ prune: !!conf.prune, wallet }),
+          ...rpcArgs({ wallet }),
           '-named',
           'sendall',
           `recipients=["${address}"]`,
@@ -101,8 +100,15 @@ export const sendAllCoin = sdk.Action.withInput(
     return {
       version: '1',
       title: i18n('Success'),
-      message: `TXID: ${res}`,
-      result: null,
+      message: i18n('The transaction was sent. Its ID is below.'),
+      result: {
+        type: 'single',
+        value: res,
+        copyable: true,
+        qr: false,
+        launchable: false,
+        masked: false,
+      },
     }
   },
 )

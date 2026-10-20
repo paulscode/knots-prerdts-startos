@@ -20,25 +20,20 @@ export const seedFiles = sdk.setupOnInit(async (effects, kind) => {
   if (kind === 'install') {
     await bitcoinConfFile.merge(effects, {
       // Cleared rather than left unwritten, so a fresh install and one that
-      // upgraded into this version read the same. They did not: this seed runs on
-      // install only, so a fresh install had ZeroMQ on and exported two extra
-      // interfaces while an upgraded one had neither.
+      // upgraded into this version read the same.
       zmqEnabled: false,
       blockfilters: { blockfilterindex: true },
       dbcache: defaultDbcache(),
       dbbatchsize: defaultDbbatchsize(),
       natpmp: false,
-      // Knots 29.3 leaves token transactions allowed by default; new installs
-      // reject them. Only on install: an existing node keeps whatever its
-      // bitcoin.conf says.
+      // Written rather than left to the binary's own default (true for series
+      // 31) so the choice belongs to this install and survives a series that
+      // changes it. Only on install: an existing node keeps its bitcoin.conf.
       rejecttokens: true,
       datacarriercost: defaultDatacarriercost,
-      // Pruned on every fresh install, where the official package this forks
-      // prunes only on a small disk. This node is a companion meant to run
-      // beside your main one, so a second full copy of the same chain is the
-      // outcome almost nobody wants. Pruning costs a dependent nothing, because
-      // main.ts runs btc-rpc-proxy in front of the node whenever this is
-      // non-zero. Existing installs keep whatever they already have.
+      // Pruned on every fresh install: this node is a companion meant to run
+      // beside your main one (see defaultPruneMib). Existing installs keep
+      // whatever they already have.
       prune: defaultPruneMib,
       raw: {
         i2psam: i2PSamAddress,

@@ -9,16 +9,14 @@ export const manifest = setupManifest({
   //
   // The title says SHA256 because that is what a user needs to know at the
   // moment they are choosing between this and the BLAKE2b companion: which
-  // chain it follows. "pre-RDTS" describes how this build differs from the
-  // other Knots flavors, which is a second-order question and one the
-  // description can answer.
+  // chain it follows.
   id: 'knots-prerdts',
   title: 'Bitcoin Knots (SHA256) Companion',
   license: 'MIT',
   donationUrl: null,
   packageRepo: 'https://github.com/paulscode/knots-prerdts-startos',
-  upstreamRepo: 'https://github.com/bitcoinknots/bitcoin',
-  marketingUrl: 'https://bitcoinknots.org/',
+  upstreamRepo: 'https://github.com/paulscode/knots-sha256',
+  marketingUrl: 'https://github.com/paulscode/knots-sha256',
   description: { short, long },
   // StartOS 0.4.0.2, not the SDK's default, so the registry hides releases from
   // older servers. Every release from 2026-10-11 on targets 0.4.0.2.
@@ -29,35 +27,25 @@ export const manifest = setupManifest({
       source: {
         dockerBuild: {
           buildArgs: {
-            VERSION: '29.3.knots20260507',
-            PATH_VERSION: '29.x',
+            // The full release string of the Bitcoin Knots SHA256 release this
+            // package installs (`tools/cfg version` → version_string in the
+            // framework repo). The Dockerfile downloads
+            // bitcoin-${VERSION}-<host>.tar.gz, SHA256SUMS and SHA256SUMS.asc
+            // from that release's GitHub Release page and verifies the
+            // signature against the pinned maintainer key. See UPDATING.md.
+            VERSION: '31.1.knots-sha256.20261018rc1',
           },
         },
       },
       arch: ['x86_64', 'aarch64', 'riscv64'],
     },
-    // The Start9 image again, and the first version of it worth running on a
-    // pruned node. v0.8.1 is tagged at the merge of PR #34, which fixed two
-    // defects that each stopped a pruned node's dependents dead and neither of
-    // which cleared on its own:
-    //
-    //   - The witness check rejected any block whose coinbase commits to
-    //     witnesses the block does not carry. Blocks mined during SegWit
-    //     signalling have exactly that shape and are valid; mainnet 434499 is
-    //     the first. Every peer returns the same bytes, so every peer "failed",
-    //     the block was never fetched, and an indexer could never pass that
-    //     height.
-    //   - The passthrough cookie was read once at startup. bitcoind writes a
-    //     new one every time it starts, so from this node's next restart the
-    //     proxy answered its dependents 401 forever, and only restarting the
-    //     proxy cleared it.
-    //
-    // The previous release carried our own build of those fixes, because they
-    // had not been released upstream yet. They have been, so this is back on
-    // the official image: same fixes, same three architectures, and none of the
-    // BLAKE2b header work this chain has no use for.
-    //
-    // Anything below v0.8.1 is not safe to pin here. v0.8.0 has both defects.
+    // v0.8.1 is the first proxy release safe to run in front of a pruned node.
+    // It fixes the witness check that rejected every block whose coinbase
+    // commits to witnesses the block does not carry (valid blocks mined during
+    // SegWit signalling; mainnet 434499 is the first, and an indexer could
+    // never pass that height), and the passthrough cookie being read once at
+    // startup, which answered dependents 401 from the node's next restart on.
+    // v0.8.0 has both defects. Carried from knots-prerdts-startos.
     proxy: {
       source: {
         dockerTag: 'ghcr.io/start9labs/btc-rpc-proxy:v0.8.2',

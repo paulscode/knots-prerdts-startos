@@ -1,150 +1,72 @@
-import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
+import { VersionInfo } from '@start9labs/start-sdk'
 import { rm } from 'fs/promises'
 import { bitcoinConfFile } from '../fileModels/bitcoin.conf'
-import { storeJson } from '../fileModels/store.json'
 
 /**
- * Reset all mempool settings to undefined so the new flavor's upstream
- * defaults take effect. Applied on Core↔Knots transitions only; Knots
- * variants share identical mempool defaults so switching between them
- * leaves the mempool config alone.
+ * Knots 29.3's built-in software expiry (2027-11-07). Earlier releases of this
+ * package wrote it into bitcoin.conf from the Other Settings form on every save,
+ * whether or not the user changed it, so an upgraded node would otherwise expire
+ * a year before this release does. Only that exact value is dropped; a value the
+ * user chose (0 included) is kept.
  */
-const mempoolReset = {
-  // Shared mempool settings
-  persistmempool: undefined,
-  maxmempool: undefined,
-  mempoolexpiry: undefined,
-  mempoolfullrbf: undefined,
-  permitbaremultisig: undefined,
-  datacarrier: undefined,
-  datacarriersize: undefined,
-  // Knots-specific mempool settings
-  permitbaredatacarrier: undefined,
-  rejectparasites: undefined,
-  rejecttokens: undefined,
-  mempoolreplacement: undefined,
-  mempooltruc: undefined,
-  permitbareanchor: undefined,
-  permitephemeral: undefined,
-  minrelaytxfee: undefined,
-  bytespersigop: undefined,
-  bytespersigopstrict: undefined,
-  maxtxlegacysigops: undefined,
-  limitancestorcount: undefined,
-  limitancestorsize: undefined,
-  limitdescendantcount: undefined,
-  limitdescendantsize: undefined,
-  permitbarepubkey: undefined,
-  maxscriptsize: undefined,
-  datacarriercost: undefined,
-  acceptnonstddatacarrier: undefined,
-  dustrelayfee: undefined,
-  acceptunknownwitness: undefined,
-  minrelaycoinblocks: undefined,
-  minrelaymaturity: undefined,
+const knots293SoftwareExpiry = 1825593420
+
+async function dropInheritedSoftwareExpiry(
+  effects: Parameters<typeof bitcoinConfFile.merge>[0],
+) {
+  const conf = await bitcoinConfFile.read().once()
+  if (conf?.softwareexpiry === knots293SoftwareExpiry) {
+    await bitcoinConfFile.merge(effects, { softwareexpiry: undefined })
+  }
 }
 
 /**
- * Chain-split recovery flag (see startos/forkRecovery.ts), set on the `up`
- * sidegrade from the RDTS-enforcing `#knots` sibling and consumed by this
- * flavor's chain-recovery oneshot at next start (a clean no-op when there is
- * nothing to fix). The shared datadir carries the sibling's persisted
- * per-block verdicts across the switch, so its RDTS-driven invalid verdicts
- * must be reconsidered or they pin this node to a stale chain across a
- * split. The runtime rdtsEnforcedLastRun marker detects the same transition
- * independently; setting the flag here makes the switch case deterministic
- * even if a prior run never recorded a marker.
- *
- * The `down` edge toward the sibling needs nothing: the Knots release it
- * pins re-validates the RDTS-applicable range itself when it starts on a
- * datadir that advanced without enforcement.
+ * This node is Bitcoin Core 31.x underneath, so its datadir carries two
+ * things an older bitcoind refuses to read. Removing them is what the
+ * official Core 31.x package does on its own downgrade path; both are
+ * rebuilt by the destination binary.
  */
-const leavingRdtsFlavor = { reconsiderInvalidTips: true }
+const removeFeeEstimates = async () => {
+  // v31 changed CURRENT_FEES_FILE_VERSION (149900 → 309900) and the fee
+  // estimator bucket size; ≤30 hard-fails on a v31-written file.
+  await rm('/media/startos/volumes/main/fee_estimates.dat', {
+    force: true,
+  }).catch(console.error)
+}
+const removeCoinstatsIndex = async () => {
+  // Core 30 moved the coinstatsindex layout; a ≤29 node cannot read it.
+  await rm('/media/startos/volumes/main/indexes/coinstatsindex', {
+    recursive: true,
+    force: true,
+  }).catch(console.error)
+}
 
 export const current = VersionInfo.of({
-  version: '#knotsprerdts:29.3:33',
+  // #knotsprerdts is this package's flavor and never changes (Datum (SHA256)
+  // Companion depends on >=#knotsprerdts:29.3:25). 31.1 is the Bitcoin Core base
+  // of the installed Bitcoin Knots SHA256 release; the trailing number is this
+  // package's own revision.
+  version: '#knotsprerdts:31.1:0',
   releaseNotes: {
-    en_US: `- Rebuilt on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2. Nothing you have set changes, and settings files keep any key added to them by hand, as before.\n- The RPC proxy moves to 0.8.2. It answers JSON-RPC 2.0 requests in 2.0 and returns a batch of replies in the order they were asked; before, a client sending a batch could have its answers matched to the wrong questions. The proxy sits in front of this node whenever it prunes, which is the default.\n- Restore Wallet no longer reports a failure after 30 seconds while the restore carries on in the background. Restoring rescans the chain, which takes minutes on a real wallet.\n- A service that needs this node's wallet can now turn it on from its setup task.\n- Delete Coinstats Index now deletes the right folder instead of failing with an error.\n- A new Delete Block Filter Index action removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- A new Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync now reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- New installs reject token transactions. Existing nodes keep their current setting; to turn it on, set Reject Tokens under Mempool Settings.`,
-    es_ES: `- Rebuilt on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2. Nothing you have set changes, and settings files keep any key added to them by hand, as before.\n- The RPC proxy moves to 0.8.2. It answers JSON-RPC 2.0 requests in 2.0 and returns a batch of replies in the order they were asked; before, a client sending a batch could have its answers matched to the wrong questions. The proxy sits in front of this node whenever it prunes, which is the default.\n- Restore Wallet no longer reports a failure after 30 seconds while the restore carries on in the background. Restoring rescans the chain, which takes minutes on a real wallet.\n- A service that needs this node's wallet can now turn it on from its setup task.\n- Delete Coinstats Index now deletes the right folder instead of failing with an error.\n- A new Delete Block Filter Index action removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- A new Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync now reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- New installs reject token transactions. Existing nodes keep their current setting; to turn it on, set Reject Tokens under Mempool Settings.`,
-    de_DE: `- Rebuilt on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2. Nothing you have set changes, and settings files keep any key added to them by hand, as before.\n- The RPC proxy moves to 0.8.2. It answers JSON-RPC 2.0 requests in 2.0 and returns a batch of replies in the order they were asked; before, a client sending a batch could have its answers matched to the wrong questions. The proxy sits in front of this node whenever it prunes, which is the default.\n- Restore Wallet no longer reports a failure after 30 seconds while the restore carries on in the background. Restoring rescans the chain, which takes minutes on a real wallet.\n- A service that needs this node's wallet can now turn it on from its setup task.\n- Delete Coinstats Index now deletes the right folder instead of failing with an error.\n- A new Delete Block Filter Index action removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- A new Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync now reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- New installs reject token transactions. Existing nodes keep their current setting; to turn it on, set Reject Tokens under Mempool Settings.`,
-    pl_PL: `- Rebuilt on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2. Nothing you have set changes, and settings files keep any key added to them by hand, as before.\n- The RPC proxy moves to 0.8.2. It answers JSON-RPC 2.0 requests in 2.0 and returns a batch of replies in the order they were asked; before, a client sending a batch could have its answers matched to the wrong questions. The proxy sits in front of this node whenever it prunes, which is the default.\n- Restore Wallet no longer reports a failure after 30 seconds while the restore carries on in the background. Restoring rescans the chain, which takes minutes on a real wallet.\n- A service that needs this node's wallet can now turn it on from its setup task.\n- Delete Coinstats Index now deletes the right folder instead of failing with an error.\n- A new Delete Block Filter Index action removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- A new Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync now reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- New installs reject token transactions. Existing nodes keep their current setting; to turn it on, set Reject Tokens under Mempool Settings.`,
-    fr_FR: `- Rebuilt on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2. Nothing you have set changes, and settings files keep any key added to them by hand, as before.\n- The RPC proxy moves to 0.8.2. It answers JSON-RPC 2.0 requests in 2.0 and returns a batch of replies in the order they were asked; before, a client sending a batch could have its answers matched to the wrong questions. The proxy sits in front of this node whenever it prunes, which is the default.\n- Restore Wallet no longer reports a failure after 30 seconds while the restore carries on in the background. Restoring rescans the chain, which takes minutes on a real wallet.\n- A service that needs this node's wallet can now turn it on from its setup task.\n- Delete Coinstats Index now deletes the right folder instead of failing with an error.\n- A new Delete Block Filter Index action removes a corrupted block filter index so it can be rebuilt, which on a pruned node needs Reindex Blockchain.\n- A new Peers health check fails when the node has had no outbound peers for five minutes.\n- Blockchain Sync now reads "Catching up" with the number of blocks behind, rather than synced, when the node falls two or more blocks behind.\n- New installs reject token transactions. Existing nodes keep their current setting; to turn it on, set Reject Tokens under Mempool Settings.`,
+    en_US: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- This companion now runs Bitcoin Knots SHA256: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core. It was pinned to Bitcoin Knots 29.3.knots20260507 and now follows Bitcoin Knots SHA256 releases in lock-step with the drop-in Bitcoin Knots SHA256 package. It keeps its own id, ports and data, and stays pruned unless you changed that.\n- Upgrading keeps your synced chain. Downgrading to an earlier 29.3 release of this companion removes the fee estimates and the coinstats index, which the older node cannot read; both are rebuilt.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Dependent services can read the node over its REST interface, served only to services on this server. RPC now always goes through the RPC proxy, which answers JSON-RPC only.\n- A Peers health check, a Catching up state in Blockchain Sync, Delete Block Filter Index, and Other Settings for the block weight reserved for the coinbase transaction, which mining services such as Datum Gateway can request.\n- Software Expiry is now empty by default, meaning this release's built-in expiry. The value 1825593420 (2027-11-07) that earlier versions wrote on every save is removed on upgrade.`,
+    es_ES: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- This companion now runs Bitcoin Knots SHA256: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core. It was pinned to Bitcoin Knots 29.3.knots20260507 and now follows Bitcoin Knots SHA256 releases in lock-step with the drop-in Bitcoin Knots SHA256 package. It keeps its own id, ports and data, and stays pruned unless you changed that.\n- Upgrading keeps your synced chain. Downgrading to an earlier 29.3 release of this companion removes the fee estimates and the coinstats index, which the older node cannot read; both are rebuilt.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Dependent services can read the node over its REST interface, served only to services on this server. RPC now always goes through the RPC proxy, which answers JSON-RPC only.\n- A Peers health check, a Catching up state in Blockchain Sync, Delete Block Filter Index, and Other Settings for the block weight reserved for the coinbase transaction, which mining services such as Datum Gateway can request.\n- Software Expiry is now empty by default, meaning this release's built-in expiry. The value 1825593420 (2027-11-07) that earlier versions wrote on every save is removed on upgrade.`,
+    de_DE: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- This companion now runs Bitcoin Knots SHA256: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core. It was pinned to Bitcoin Knots 29.3.knots20260507 and now follows Bitcoin Knots SHA256 releases in lock-step with the drop-in Bitcoin Knots SHA256 package. It keeps its own id, ports and data, and stays pruned unless you changed that.\n- Upgrading keeps your synced chain. Downgrading to an earlier 29.3 release of this companion removes the fee estimates and the coinstats index, which the older node cannot read; both are rebuilt.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Dependent services can read the node over its REST interface, served only to services on this server. RPC now always goes through the RPC proxy, which answers JSON-RPC only.\n- A Peers health check, a Catching up state in Blockchain Sync, Delete Block Filter Index, and Other Settings for the block weight reserved for the coinbase transaction, which mining services such as Datum Gateway can request.\n- Software Expiry is now empty by default, meaning this release's built-in expiry. The value 1825593420 (2027-11-07) that earlier versions wrote on every save is removed on upgrade.`,
+    pl_PL: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- This companion now runs Bitcoin Knots SHA256: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core. It was pinned to Bitcoin Knots 29.3.knots20260507 and now follows Bitcoin Knots SHA256 releases in lock-step with the drop-in Bitcoin Knots SHA256 package. It keeps its own id, ports and data, and stays pruned unless you changed that.\n- Upgrading keeps your synced chain. Downgrading to an earlier 29.3 release of this companion removes the fee estimates and the coinstats index, which the older node cannot read; both are rebuilt.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Dependent services can read the node over its REST interface, served only to services on this server. RPC now always goes through the RPC proxy, which answers JSON-RPC only.\n- A Peers health check, a Catching up state in Blockchain Sync, Delete Block Filter Index, and Other Settings for the block weight reserved for the coinbase transaction, which mining services such as Datum Gateway can request.\n- Software Expiry is now empty by default, meaning this release's built-in expiry. The value 1825593420 (2027-11-07) that earlier versions wrote on every save is removed on upgrade.`,
+    fr_FR: `- Release candidate 1 of Bitcoin Knots SHA256 31.1 (31.1.knots-sha256.20261018rc1), for testing before the final release.\n- This companion now runs Bitcoin Knots SHA256: Bitcoin Knots' policy patch series maintained on top of Bitcoin Core 31.1 for the SHA256 chain, consensus-identical to Bitcoin Core. It was pinned to Bitcoin Knots 29.3.knots20260507 and now follows Bitcoin Knots SHA256 releases in lock-step with the drop-in Bitcoin Knots SHA256 package. It keeps its own id, ports and data, and stays pruned unless you changed that.\n- Upgrading keeps your synced chain. Downgrading to an earlier 29.3 release of this companion removes the fee estimates and the coinstats index, which the older node cannot read; both are rebuilt.\n- Built on version 3 of the StartOS packaging SDK, which needs StartOS 0.4.0.2.\n- Dependent services can read the node over its REST interface, served only to services on this server. RPC now always goes through the RPC proxy, which answers JSON-RPC only.\n- A Peers health check, a Catching up state in Blockchain Sync, Delete Block Filter Index, and Other Settings for the block weight reserved for the coinbase transaction, which mining services such as Datum Gateway can request.\n- Software Expiry is now empty by default, meaning this release's built-in expiry. The value 1825593420 (2027-11-07) that earlier versions wrote on every save is removed on upgrade.`,
   },
   migrations: {
-    up: async ({ effects }) => {},
-    down: IMPOSSIBLE,
-    other: {
-      // Core ↔ #knotsprerdts. Mirrors what `#knots` does for the same
-      // Core majors: mempool reset on every transition, plus data-path
-      // cleanup for Core 30 (coinstatsindex moved) and Core 31 (fees-file
-      // bump + coinstatsindex).
-      ['^28']: {
-        up: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-        },
-        down: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-        },
-      },
-      ['^29']: {
-        up: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-        },
-        down: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-        },
-      },
-      ['^30']: {
-        up: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-          await rm('/media/startos/volumes/main/indexes/coinstatsindex', {
-            recursive: true,
-            force: true,
-          }).catch(console.error)
-        },
-        down: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-        },
-      },
-      ['^31']: {
-        up: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-          await rm('/media/startos/volumes/main/fee_estimates.dat', {
-            force: true,
-          }).catch(console.error)
-          await rm('/media/startos/volumes/main/indexes/coinstatsindex', {
-            recursive: true,
-            force: true,
-          }).catch(console.error)
-        },
-        down: async ({ effects }) => {
-          await bitcoinConfFile.merge(effects, mempoolReset)
-        },
-      },
-      // #knots ↔ #knotsprerdts. Same data layout; this flavor ships
-      // the last pre-RDTS Knots release (20260507). Switching here is
-      // an explicit opt-out of RDTS, so queue the invalid-verdict
-      // reconsideration. Any `consensusrules=rdts` carried over is
-      // stripped by the file model on the first write, so there is
-      // nothing to clear here. No `down`: the sibling's own binary
-      // re-validates the RDTS-applicable range on its first start.
-      ['^#knots:29.3']: {
-        up: async ({ effects }) => {
-          await storeJson.merge(effects, leavingRdtsFlavor)
-        },
-      },
-      // `#knotsrdts` (the retired "Bitcoin Knots plus BIP-110" build)
-      // is being de-listed. Users on it can move here; same data layout,
-      // and same RDTS-opt-out cleanup and verdict-clearing as the
-      // `#knots` path above. No `down` — `#knotsrdts` can't be selected
-      // as a destination.
-      ['^#knotsrdts:29.3']: {
-        up: async ({ effects }) => {
-          await storeJson.merge(effects, leavingRdtsFlavor)
-        },
-      },
+    // From this package's own 29.3 releases: the same chain, so the datadir is
+    // kept; only the expiry their Other Settings form wrote is dropped.
+    up: async ({ effects }) => {
+      await dropInheritedSoftwareExpiry(effects)
     },
+    // Back to a 29.3 release of this package: remove what Bitcoin Core 31 adds
+    // that the older node refuses to read (both are rebuilt).
+    down: async () => {
+      await removeFeeEstimates()
+      await removeCoinstatsIndex()
+    },
+    // Its own package id: no cross-flavor migrations.
+    other: {},
   },
 })
-  .satisfies('29.4:13')
-  .satisfies('28.4:26')
