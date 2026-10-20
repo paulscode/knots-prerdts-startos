@@ -60,7 +60,7 @@ Verification pins the maintainer's key: `SHA256SUMS.asc` must carry a good signa
 
 Two oneshots bracket the daemons. `nocow` sets the btrfs no-COW attribute across the data directory and must finish before `bitcoind` starts. `synced-true` runs after it, and is described under [Installation and First-Run Flow](#installation-and-first-run-flow).
 
-The i2pd image has no riscv64 build and is declared `emulateMissingAs: 'x86_64'`, so on riscv64 hardware the I2P router runs emulated.
+The i2pd image has no riscv64 build and is declared `emulateMissing: true`, so on riscv64 hardware the I2P router runs emulated.
 
 ## Volume and Data Layout
 
@@ -124,7 +124,7 @@ The exceptions are literals, repaired at the next init: `log=stdout` and `loglev
 
 ### store.json
 
-StartOS-side state, none of it upstream configuration. `reindexBlockchain` and `reindexChainstate` are one-shot flags: the next start converts each into a bitcoind argument and clears it. `fullySynced` gates the Sync Complete notification, and `snapshotInUse` records that a UTXO snapshot is loaded. `selectedWallet` records which wallet the Wallet-group actions operate on.
+StartOS-side state, none of it upstream configuration. `reindexBlockchain` and `reindexChainstate` are one-shot flags: the next start converts each into a bitcoind argument and clears it. `fullySynced` gates the Sync Complete notification, and `snapshotInUse` records that a UTXO snapshot is loaded. `selectedWallet` records which wallet the Wallet-group actions operate on. `reattachPeerOnions` keeps the legacy peer-address migration pending until a compatible Tor and an enabled peer binding are available.
 
 The store is shared across bitcoind flavors along with the rest of the volume, which is why every flavor declares all of these keys — including ones it never acts on.
 
@@ -136,7 +136,7 @@ One, optional and conditional on how the node is configured.
 | ---------- | --------- | ------------- | ------ | -------------------------------------------------------------------- |
 | Tor        | `running` | none          | none   | Outbound peer connections over Tor, and advertising an onion address |
 
-It becomes a running dependency only when the node is actually set up for onion connectivity — an `externalip` containing a `.onion`, or an `onlynet` that includes `onion`. Otherwise the package declares nothing and starts without Tor.
+It becomes a running dependency only when the node is actually set up for onion connectivity — an `externalip` containing a `.onion`, or an `onlynet` that includes `onion`. The optional dependency is declared once in `startos/dependencies.ts`; its `enabled` watcher activates that running requirement only in those cases.
 
 Tor's SOCKS address is resolved over the service bridge with a fallback port, so `-onion` is passed on **every** start whether or not Tor is installed. A missing Tor is a connection refused, not an error, and the fallback keeps the address stable across Tor being installed, updated, or removed, so those events do not restart Bitcoin.
 
@@ -151,6 +151,8 @@ Two interfaces always, two more when ZeroMQ is enabled, and one more when the I2
 | ZeroMQ Block       | `zmq-block`   | api  | 28332                  | when ZeroMQ is enabled                          |
 | ZeroMQ Transaction | `zmq-tx`      | api  | 28333                  | when ZeroMQ is enabled                          |
 | I2P Daemon Console | `i2p-console` | ui   | 7070                   | when `i2psam` is set and the i2pd console is on |
+
+**Legacy peer onions:** every init retires the old container-port 8333 binding on `peer` if it is still there, then asks Tor, through `tor-startos`'s `setupOnionReattachment`, to attach that host's retained addresses to container port 58333. It is an init step rather than a migration because an install whose data version is a range, which a flavor switch leaves behind, never runs a migration's `up()`. Their public onion port remains 8333. The request waits for Tor `0.4.9.13:1` or later and for the peer binding to be enabled. It never automatically moves an address from another host.
 
 Block and transaction notifications are two interfaces rather than one because bitcoind publishes them on separate ports, so a dependent that needs only one of them (LND, for instance) can resolve it independently.
 
@@ -168,6 +170,8 @@ There is no setup wizard, no credential to enter, and no task raised at install 
 4. **`externalip` is derived, not asked for.** It follows whatever addresses are published on the peer interface, so adding a Tor address there is what makes the node advertise it and what turns Tor into a running dependency.
 5. **Every start** runs `nocow` and `clean-chainstate-old` before bitcoind.
 6. **When sync completes**, `synced-true` posts a Sync Complete notification and clears the two cache settings. It fires once per data directory; a reindex resets the flag, so it fires again when that finishes.
+
+A switch from Bitcoin Core 28.x–31.x, or from **Bitcoin Knots (Legacy)** — the StartOS 0.3.5.1 Knots as the 0.4.0 update carries it over — keeps the data directory and runs as an update. Coming from Core, the mempool policy keys are reset so Knots' defaults apply; coming from Legacy, the config is kept as written. Bitcoin Knots (RDTS) is refused: it follows a different chain.
 
 ## Actions
 
@@ -225,10 +229,10 @@ A read-only snapshot for diagnosis: peer counts split inbound and outbound, bloc
 Knots' built-in wallet, surfaced as actions. All nine are grouped under **Wallet**, all are **only available while the service is running**, and **all nine disappear entirely when `disablewallet` is on** — so a node configured without a wallet shows none of them.
 
 - **Select Wallet** decides which wallet every other action in the group operates on, and its description names the current selection. The default is the historical hardcoded wallet name, so an existing install is unchanged.
-- **Get Balance** and **Get Address** read; Get Address returns a new segwit address each time.
+- **Get Balance** and **Get Address** read; Get Balance lists the trusted, untrusted-pending and immature balances as separate copyable fields, and Get Address returns a new segwit address each time, copyable and as a QR code.
 - **Send Coins** and **Send All Coins** spend. Both are irreversible once broadcast.
-- **Sign Message** signs with one of the wallet's addresses.
-- **Backup wallet** writes the wallet to a file **so that StartOS's own backup captures it** — the wallet's live database is not otherwise in a backup-safe state. **Restore wallet** reads that file back, and **Remove wallet** deletes the selected wallet from the node.
+- **Sign Message** signs with one of the wallet's addresses. It, Send Coins and Send All Coins return the signature or transaction ID in a copyable field.
+- **Backup wallet** writes the wallet to a file **so that StartOS's own backup captures it** — the wallet's live database is not otherwise in a backup-safe state. It asks for confirmation, because it overwrites that wallet's previous backup file. **Restore wallet** reads that file back, also after confirmation, and refuses if a wallet of that name still exists; and **Remove wallet** deletes the selected wallet from the node.
 
 ### Prioritize Transaction
 
@@ -239,7 +243,7 @@ Raises or lowers a transaction's effective fee in this node's own mempool, using
 
 ### Hidden: Auto-Configure, Create RPC Credentials
 
-Both are `visibility: 'hidden'` — not user-facing, and never something to tell a user to run. **Auto-Configure** is how a dependent service requests configuration; the surface it can reach is deliberately narrow (block filters, `blocknotify`, coinstats index, bloom filters, pruning, `txindex`, ZeroMQ), and `raw` — with `rpcauth`, `whitelist`, `externalip`, and the peer lists — is unreachable from it. **Create RPC Credentials** lets a dependent register an `rpcauth` user with a password it already holds, subject to a minimum length the user cannot override.
+Both are `visibility: 'hidden'` — not user-facing, and never something to tell a user to run. **Auto-Configure** is how a dependent service requests configuration; the surface it can reach is deliberately narrow (block filters, `blocknotify`, `blockreservedweight`, coinstats index, bloom filters, pruning, `txindex`, enabling the wallet, ZeroMQ), and `raw` — with `rpcauth`, `whitelist`, `externalip`, and the peer lists — is unreachable from it. **Create RPC Credentials** lets a dependent register an `rpcauth` user with a password it already holds, subject to a minimum length the user cannot override.
 
 ## Tasks
 

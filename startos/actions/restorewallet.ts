@@ -20,7 +20,10 @@ export const restorewallet = sdk.Action.withoutInput(
     return {
       name: i18n('Restore wallet'),
       description: i18n('Restore wallet from the backup'),
-      warning: null,
+      warning: i18n(
+        'Recreates wallet ${wallet} from its backup file and loads it. Bitcoin refuses if that wallet still exists.',
+        { wallet: walletLabel(await getSelectedWallet(effects)) },
+      ),
       allowedStatuses: 'only-running',
       group: i18n('Wallet'),
       visibility: !conf?.raw?.disablewallet

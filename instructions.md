@@ -12,7 +12,7 @@
 - An embedded **i2pd** sidecar that brings up I2P transport automatically — your node accepts inbound peers over I2P out of the box, with a separate **I2P Daemon Console** interface available when you turn the i2pd web console on.
 - An automatic Tor outbound proxy (your node reaches `.onion` peers without configuration); add a `.onion` to the Peer Interface to advertise yourself and accept inbound Tor connections too.
 - Disk-aware defaults: on disks smaller than 900 GB the package enables pruning and disables `txindex`; on larger disks you get a full archival node. The transition is transparent — pruned nodes route RPC through a small `btc-rpc-proxy` sidecar so port 8332 always serves RPC the same way, and it fetches any block your node has pruned from the peer-to-peer network on demand, so wallets and services see a node that behaves as though nothing were pruned.
-- Shared `bitcoind` package id with Bitcoin Core — you can switch here from Bitcoin Core or Bitcoin Knots (pre-RDTS) without re-syncing the chain. Bitcoin Knots (RDTS) follows a different chain, so switching to or from it is not offered.
+- Shared `bitcoind` package id with Bitcoin Core — you can switch here from Bitcoin Core, Bitcoin Knots (pre-RDTS), or Bitcoin Knots (Legacy) as carried over from StartOS 0.3.5.1, without re-syncing the chain. Bitcoin Knots (RDTS) follows a different chain, so switching to or from it is not offered.
 
 ## Getting set up
 
@@ -37,9 +37,13 @@ Four configuration actions cover the full set of editable `bitcoin.conf` values,
 - **Mempool Settings** — Knots' policy controls (OP_RETURN limits, parasite/token filters, replacement rules, ancestor/descendant limits, dust relay fee, etc.) plus standard mempool sizing.
 - **Peer Settings** — `onlynet`, BIP324 v2 transport, I2P SAM proxy on/off, manual peers, max connections.
 - **RPC Settings** — RPC threads, work queue, server timeout.
-- **Other Settings** — ZMQ, txindex, block templates, coinstats index, block filters (BIP158/157), pruning, dbcache, wallet master switches, NAT-PMP, max upload target, and more.
+- **Other Settings** — ZMQ, txindex, block templates, the block weight reserved for a mining service's coinbase, coinstats index, block filters (BIP158/157), pruning, dbcache, wallet master switches, NAT-PMP, max upload target, and more.
 
 Turning on txindex, the coinstats index, or block filters after the chain is already synced starts a rebuild from the first block. The **Index Sync** health check on the Dashboard tracks it, and anything relying on that index — transaction lookups, filter-based wallet scans — stays incomplete until it finishes, even though the node itself reports fully synced.
+
+### Preserving a peer .onion address after an update
+
+The update reattaches existing peer addresses to the current peer interface through Tor, keeping their hostname and public port. Keep Tor up to date; reattachment waits until it supports this operation. Unused addresses from a different host can be explicitly selected through the interface's Tor table.
 
 ### RPC users
 
@@ -51,8 +55,8 @@ Turning on txindex, the coinstats index, or block filters after the chain is alr
 When wallets are not disabled, the node ships with a basic wallet toolkit you can drive from actions:
 
 - **Select Wallet** — choose which wallet the other Wallet actions operate on. It defaults to `coin`, and the dropdown also lists wallets created by dependent services such as BTCPay Server/NBXplorer (including bitcoind's unnamed default wallet).
-- **Get Address**, **Get Balance**, **Send Coin**, **Send All Coin**, **Sign Message**.
-- **Backup Wallet** / **Restore Wallet** / **Remove Wallet**.
+- **Get Address**, **Get Balance**, **Send Coins**, **Send All Coins**, **Sign Message**.
+- **Backup wallet** / **Restore wallet** / **Remove wallet**. Backup wallet replaces the selected wallet's previous backup, and Restore wallet only works once that wallet has been removed; both ask for confirmation.
 
 Every action above acts on the currently selected wallet, so if you run more than one wallet (for example alongside BTCPay Server) use **Select Wallet** to point them at the right one first — otherwise they operate on `coin`. For day-to-day use prefer a dedicated wallet pointed at the RPC interface; the action surface here is mainly for one-off recovery and maintenance.
 

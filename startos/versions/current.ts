@@ -136,10 +136,14 @@ export const current = VersionInfo.of({
           await removeCoinstatsIndex()
         },
       },
-      // No entry for `#knots` or `#knotsrdts`: from 29.4 on Bitcoin Knots
-      // enforces BIP-110 and mines BLAKE2b proof-of-work, so those flavors'
-      // datadirs are on a different chain. A migration in either direction is
-      // refused, as the pre-RDTS package refuses it.
+      // `#knots` only up to :7, which ran Knots 29.3.knots20260210 or earlier
+      // (pre-RDTS, the same chain; StartOS 0.3.5.1's Knots included). From :8 on,
+      // and for `#knotsrdts`, Bitcoin Knots enforces BIP-110 and later mines
+      // BLAKE2b proof-of-work, so those datadirs are on a different chain and a
+      // migration in either direction is refused, as the pre-RDTS package refuses it.
+      ['<=#knots:29.3:7']: {
+        up: async () => {},
+      },
     },
   },
 })

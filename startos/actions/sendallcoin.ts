@@ -101,8 +101,15 @@ export const sendAllCoin = sdk.Action.withInput(
     return {
       version: '1',
       title: i18n('Success'),
-      message: `TXID: ${res}`,
-      result: null,
+      message: i18n('The transaction was sent. Its ID is below.'),
+      result: {
+        type: 'single',
+        value: res,
+        copyable: true,
+        qr: false,
+        launchable: false,
+        masked: false,
+      },
     }
   },
 )
