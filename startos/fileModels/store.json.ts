@@ -10,6 +10,7 @@ export const shape = z.looseObject({
    *  historical hardcoded wallet name so existing installs are unchanged. */
   selectedWallet: z.string().catch('coin'),
   reattachPeerOnions: z.boolean().catch(false),
+  enableIpc: z.boolean().catch(false),
 })
 
 export const storeJson = FileHelper.json(

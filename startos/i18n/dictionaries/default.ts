@@ -334,8 +334,8 @@ const dict = {
   'Max Block Size': 1746,
   'Maximum block size in bytes': 1747,
   'Max Block Weight': 1748,
-  'Maximum block weight in vBytes': 1749,
-  vBytes: 1750,
+  'Maximum block weight in weight units (WU)': 1749,
+  WU: 1750,
   'Compact Block Reconstructions': 1751,
   'Settings for compact block reconstructions': 1752,
   'Block Reconstruction Extra TXN': 1753,
@@ -459,6 +459,12 @@ const dict = {
   'Unconfirmed funds from others, waiting in the mempool.': 3114,
   Immature: 3115,
   'Mining rewards that cannot be spent yet.': 3116,
+  'Enable inter-process communication (IPC) via Unix socket. This allows other services to communicate with Bitcoin using a high-performance local socket connection. The socket path will be displayed in Runtime Information.': 3117,
+  'Changing this value will automatically restart the service.': 3118,
+  'Enable IPC': 3119,
+  'IPC is an experimental feature. Only enable this if you know what you are doing with the IPC socket. An example use case would be Stratum v2 mining services.': 3120,
+  'IPC Socket Path': 3121,
+  'Unix socket path for IPC communication with Bitcoin. Other services can bind to this socket in their Docker configuration.': 3122,
 } as const
 
 /**

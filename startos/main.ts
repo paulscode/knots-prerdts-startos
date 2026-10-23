@@ -19,6 +19,7 @@ import {
   rpccookiefile,
   rpcPort,
   rpcPortLocal,
+  ipcSocketPath,
 } from './utils'
 
 // JSON-RPC helper for i2pd's I2PControl API (uses self-signed cert)
@@ -105,7 +106,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // get i2pd.conf and watch for changes
   const i2pdConf = await i2pdConfFile.read().const(effects)
 
-  const { reindexBlockchain, reindexChainstate } = store
+  const { reindexBlockchain, reindexChainstate, enableIpc } = store
 
   // Tor SOCKS over the bridge. The bridge address only changes when tor's
   // binding does — with the 9050 fallback it stays constant across tor
@@ -138,6 +139,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
   } else if (reindexChainstate) {
     bitcoinArgs.push('-reindex-chainstate')
     await storeJson.merge(effects, { reindexChainstate: false })
+  }
+  if (enableIpc) {
+    bitcoinArgs.push(`-ipcbind=${ipcSocketPath}`)
   }
 
   const bitcoindSub = await sdk.SubContainer.eager(
@@ -233,7 +237,14 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const base = sdk.Daemons.of(effects).addOneshot('nocow', {
     subcontainer: bitcoindSub,
     exec: {
-      command: ['chattr', '-R', '+C', rootDir],
+      // Skip non-regular files: chattr fails on the IPC socket a previous run (or
+      // a switched-from Core node with IPC on) leaves behind, and a failing
+      // oneshot would restart-loop the service (bitcoin-core-startos 1c06091).
+      command: [
+        'sh',
+        '-c',
+        `rm -f ${rootDir}/ipc/bitcoin-core.sock; find ${rootDir} \\( -type d -o -type f \\) -exec chattr +C {} +`,
+      ],
     },
     requires: [],
   })
@@ -242,7 +253,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
     .addDaemon('bitcoind', {
       subcontainer: bitcoindSub,
       exec: {
-        command: ['bitcoind', ...bitcoinArgs],
+        // bitcoin-node is the multiprocess build that can serve IPC
+        command: [
+          enableIpc ? '/opt/bitcoin/libexec/bitcoin-node' : 'bitcoind',
+          ...bitcoinArgs,
+        ],
         sigtermTimeout: 300_000,
       },
       ready: {

@@ -7,6 +7,7 @@ import {
   bitcoinMounts,
   GetBlockchainInfo,
   GetNetworkInfo,
+  ipcSocketPath,
 } from '../utils'
 
 export const runtimeInfo = sdk.Action.withoutInput(
@@ -62,6 +63,11 @@ export const runtimeInfo = sdk.Action.withoutInput(
     // return
     const value = [getConnections(networkInfoRaw)]
 
+    const store = await storeJson.read().const(effects)
+    if (store?.enableIpc === true) {
+      value.push(getIpcSocketPath())
+    }
+
     value.push(getBlockchainInfo(blockchainInfoRaw))
 
     if (blockchainInfoRaw.softforks) {
@@ -84,6 +90,21 @@ function getConnections(networkInfoRaw: GetNetworkInfo): T.ActionResultMember {
     description: i18n('The number of peers connected (inbound and outbound)'),
     value: `${networkInfoRaw.connections} (${networkInfoRaw.connections_in} in / ${networkInfoRaw.connections_out} out)`,
     copyable: false,
+    masked: false,
+    qr: false,
+    launchable: false,
+  }
+}
+
+function getIpcSocketPath(): T.ActionResultMember {
+  return {
+    type: 'single',
+    name: i18n('IPC Socket Path'),
+    description: i18n(
+      'Unix socket path for IPC communication with Bitcoin. Other services can bind to this socket in their Docker configuration.',
+    ),
+    value: ipcSocketPath,
+    copyable: true,
     masked: false,
     qr: false,
     launchable: false,
