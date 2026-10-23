@@ -108,6 +108,7 @@ RUN apt-get update && apt-get install -y curl e2fsprogs jq yq
 
 COPY --from=builder /build/bin/bitcoind ${BITCOIN_PREFIX}/bin/
 COPY --from=builder /build/bin/bitcoin-cli ${BITCOIN_PREFIX}/bin/
+COPY --from=builder /build/libexec/bitcoin-node ${BITCOIN_PREFIX}/libexec/
 
 ARG ARCH
 

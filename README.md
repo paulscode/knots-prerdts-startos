@@ -90,16 +90,16 @@ Three models, and ownership is decided per key rather than per file: some keys a
 
 **Seeded at install and then yours.** Install overrides these and nothing else:
 
-| Key                                                                                  | Upstream default             | Seeded value                                     | Why                                            |
-| ------------------------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------ | ---------------------------------------------- |
-| `zmqpubrawblock`, `zmqpubhashblock`, `zmqpubrawtx`, `zmqpubhashtx`, `zmqpubsequence` | off                          | off, cleared (`zmqEnabled`)                      | A companion beside your main node rarely needs |
-| `blockfilterindex`                                                                   | off                          | `basic`                                          | Dependents need BIP158 filters                 |
-| `dbcache`                                                                            | 450 MiB                      | 25% of system RAM, capped at 5120 MiB            | Faster initial sync                            |
-| `dbbatchsize`                                                                        | 16 MiB                       | Scaled to system RAM, between 16 and 32 MiB      | Faster initial sync                            |
-| `prune`                                                                              | 0 (archival)                 | 5000 MiB on every fresh install                  | A companion should not hold a second full chain |
-| `rejecttokens`                                                                       | on                           | on, written explicitly                           | Stays on if a later series changes the default |
-| `i2psam`                                                                             | off                          | The embedded I2P router's SAM address            | I2P peering without a separate service         |
-| `assumevalid`                                                                        | A hash built into the binary | A hash pinned by this package                    | —                                              |
+| Key                                                                                  | Upstream default             | Seeded value                                | Why                                             |
+| ------------------------------------------------------------------------------------ | ---------------------------- | ------------------------------------------- | ----------------------------------------------- |
+| `zmqpubrawblock`, `zmqpubhashblock`, `zmqpubrawtx`, `zmqpubhashtx`, `zmqpubsequence` | off                          | off, cleared (`zmqEnabled`)                 | A companion beside your main node rarely needs  |
+| `blockfilterindex`                                                                   | off                          | `basic`                                     | Dependents need BIP158 filters                  |
+| `dbcache`                                                                            | 450 MiB                      | 25% of system RAM, capped at 5120 MiB       | Faster initial sync                             |
+| `dbbatchsize`                                                                        | 16 MiB                       | Scaled to system RAM, between 16 and 32 MiB | Faster initial sync                             |
+| `prune`                                                                              | 0 (archival)                 | 5000 MiB on every fresh install             | A companion should not hold a second full chain |
+| `rejecttokens`                                                                       | on                           | on, written explicitly                      | Stays on if a later series changes the default  |
+| `i2psam`                                                                             | off                          | The embedded I2P router's SAM address       | I2P peering without a separate service          |
+| `assumevalid`                                                                        | A hash built into the binary | A hash pinned by this package               | —                                               |
 
 These are starting points, not assertions: nothing re-imposes them, so changing one in the config forms sticks. The two sync-boost values are the exception, and they are removed rather than re-asserted — see below.
 
@@ -139,13 +139,15 @@ Tor's SOCKS address is resolved over the service bridge with a fallback port, so
 
 Two interfaces always, two more when ZeroMQ is enabled, and one more when the I2P web console is. A sixth binding exists with no interface attached to it at all.
 
-| Interface          | Id            | Type | Port                   | Present                                         |
-| ------------------ | ------------- | ---- | ---------------------- | ----------------------------------------------- |
-| RPC                | `rpc`         | api  | 8332                   | always                                          |
-| Peer               | `peer`        | p2p  | 8333 (container 58333) | always                                          |
-| ZeroMQ Block       | `zmq-block`   | api  | 28332                  | when ZeroMQ is enabled                          |
-| ZeroMQ Transaction | `zmq-tx`      | api  | 28333                  | when ZeroMQ is enabled                          |
-| I2P Daemon Console | `i2p-console` | ui   | 7070                   | when `i2psam` is set and the i2pd console is on |
+| Interface          | Id            | Type | Port                    | Present                                         |
+| ------------------ | ------------- | ---- | ----------------------- | ----------------------------------------------- |
+| RPC                | `rpc`         | api  | 18432 (container 8332)  | always                                          |
+| Peer               | `peer`        | p2p  | 18433 (container 58333) | always                                          |
+| ZeroMQ Block       | `zmq-block`   | api  | 18532 (container 28332) | when ZeroMQ is enabled                          |
+| ZeroMQ Transaction | `zmq-tx`      | api  | 18533 (container 28333) | when ZeroMQ is enabled                          |
+| I2P Daemon Console | `i2p-console` | ui   | 7070                    | when `i2psam` is set and the i2pd console is on |
+
+This companion asks for its own host-side ports (18432–18435 and 18532/18533) so it can run beside the main Bitcoin service, whose interfaces keep the standard ones; container-side ports are the same as the drop-in package's. A requested port is a preference, not a reservation: if another service already holds it, StartOS assigns a different one, so connect to the address the interface shows.
 
 **Legacy peer onions:** every init retires the old container-port 8333 binding on `peer` if it is still there, then asks Tor, through `tor-startos`'s `setupOnionReattachment`, to attach that host's retained addresses to container port 58333. It is an init step rather than a migration because an install whose data version is a range, which a flavor switch leaves behind, never runs a migration's `up()`. Their public onion port remains 8333. The request waits for Tor `0.4.9.13:1` or later and for the peer binding to be enabled. It never automatically moves an address from another host.
 

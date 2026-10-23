@@ -30,7 +30,7 @@ Bitcoin Knots (SHA256) Companion starts and begins Initial Block Download (IBD) 
 
 ### RPC
 
-The JSON-RPC API listens on port 8332. The **RPC Interface** is where wallets, indexers, Lightning nodes, and other dependent services connect. Internal services on this StartOS authenticate via the cookie file automatically; external clients need an RPC user (see actions below).
+The JSON-RPC API is on port 18432 of this server (8332 inside the service; the main Bitcoin service keeps 8332). The **RPC Interface** is where wallets, indexers, Lightning nodes, and other dependent services connect. Internal services on this StartOS authenticate via the cookie file automatically; external clients need an RPC user (see actions below).
 
 ### Configuration
 

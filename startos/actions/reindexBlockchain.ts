@@ -27,9 +27,7 @@ export const reindexBlockchain = sdk.Action.withoutInput(
       fullySynced: false,
     })
 
-    const status = await sdk
-      .getStatus(effects, { packageId: 'bitcoind' })
-      .once()
+    const status = await sdk.getStatus(effects).once()
 
     if (status?.desired.main === 'running') {
       await sdk.restart(effects)

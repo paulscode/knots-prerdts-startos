@@ -42,7 +42,7 @@ The service-log filter's drop list (`startos/i2pdLogFilter.ts`) is transcribed v
      list; if Core has bumped its `:N` since the last wrapper release, raise
      them here or dependents that raised their floor stop accepting this
      flavor. Check against a real box: `tools/startos-deps.py --host
-     start9@imposing-opponent.local` in the framework repo reads every
+     <user>@<integration-server>.local` in the framework repo reads every
      installed dependent's `bitcoind` range and must PASS (electrs 0.12.0
      there requires `>=31.1:17`).
    - `migrations.other`: if the Core base changed major (31 → 32), review the

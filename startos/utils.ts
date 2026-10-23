@@ -80,6 +80,7 @@ export const rpcbind = `0.0.0.0:${rpcPortLocal}`
 export const rpcallowip = '0.0.0.0/0'
 
 export const rootDir = '/root/.bitcoin'
+export const ipcSocketPath = `unix:${rootDir}/ipc/bitcoin-core.sock`
 export const rpccookiefile = '.cookie'
 
 export const i2pSamPort = 7656
