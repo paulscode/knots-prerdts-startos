@@ -2,7 +2,7 @@
 
 This package tracks Bitcoin Knots SHA256 releases one to one: every release of
 the node (rc and final) gets a wrapper release. The node's releases are cut by
-the private framework repo (`/mnt/Black/knots-sha256-framework`, run-book
+the maintainer's private framework repo (run-book
 `docs/RUNBOOK.md` §8–§9) and published as GitHub Releases on
 <https://github.com/paulscode/knots-sha256>. Only start here once
 `tools/release.sh publish` and `tools/verify-published.sh` are green there.
@@ -34,7 +34,7 @@ carries `bitcoin-<version_string>-<host>.tar.gz`, `SHA256SUMS`, `SHA256SUMS.asc`
      list; if Core has bumped its `:N` since the last wrapper release, raise
      them here or dependents that raised their floor stop accepting this
      flavor. Check against a real box: `tools/startos-deps.py --host
-     start9@imposing-opponent.local` in the framework repo reads every
+     <user>@<integration-server>.local` in the framework repo reads every
      installed dependent's `bitcoind` range and must PASS (electrs 0.12.0
      there requires `>=31.1:17`).
    - `migrations.other`: if the Core base changed major (31 → 32), review the
