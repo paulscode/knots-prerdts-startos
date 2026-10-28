@@ -735,6 +735,9 @@ export const fullConfigSpec = sdk.InputSpec.of({
         ),
         default: true,
         footnote: `${i18n('Default')}: false`,
+        warning: i18n(
+          'On a pruned node, only turn this on before the node has pruned anything (at install). Turning it on later stops the node from starting, because the index needs blocks that are gone; recover with Reindex Blockchain, which downloads the chain again.',
+        ),
       }),
       peerblockfilters: Value.triState({
         name: i18n('Serve Compact Block Filters to Peers (BIP157)'),

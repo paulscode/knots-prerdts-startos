@@ -19,7 +19,9 @@ import { StringDecoder } from 'node:string_decoder'
  * construction, not by enumeration. Lines that pass are prefixed `[i2pd] `
  * so the survivors are attributable in the shared service log.
  *
- * The families are transcribed verbatim from i2pd 2.58.0 field exports.
+ * The families are transcribed verbatim from i2pd 2.58.0 field exports, and
+ * re-validated for 2.59.0 against the 2.58.0...2.59.0 source diff (2026-10-28):
+ * none of the 51 dropped messages was reworded.
  * A bump of the pinned i2pd image can reword them, which fails open: a
  * reworded line no longer matches and the flood returns — see UPDATING.md
  * for the re-validation step that belongs to an i2pd bump.
