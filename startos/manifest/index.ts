@@ -54,7 +54,7 @@ export const manifest = setupManifest({
     },
     python: {
       source: {
-        dockerTag: 'python:3.14.10-alpine',
+        dockerTag: 'python:3.14.8-alpine',
       },
       arch: ['x86_64', 'aarch64', 'riscv64'],
     },
