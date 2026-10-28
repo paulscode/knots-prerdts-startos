@@ -104,7 +104,7 @@ ENV PATH=${BITCOIN_PREFIX}/bin:$PATH
 
 # curl is load-bearing: the assumeutxo action shells out to it in this image
 # to download the UTXO snapshot.
-RUN apt-get update && apt-get install -y curl e2fsprogs jq yq
+RUN apt-get update && apt-get install -y ca-certificates curl e2fsprogs jq yq
 
 COPY --from=builder /build/bin/bitcoind ${BITCOIN_PREFIX}/bin/
 COPY --from=builder /build/bin/bitcoin-cli ${BITCOIN_PREFIX}/bin/
