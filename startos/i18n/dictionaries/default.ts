@@ -465,6 +465,7 @@ const dict = {
   'IPC is an experimental feature. Only enable this if you know what you are doing with the IPC socket. An example use case would be Stratum v2 mining services.': 3120,
   'IPC Socket Path': 3121,
   'Unix socket path for IPC communication with Bitcoin. Other services can bind to this socket in their Docker configuration.': 3122,
+  'On a pruned node, only turn this on before the node has pruned anything (at install). Turning it on later stops the node from starting, because the index needs blocks that are gone; recover with Reindex Blockchain, which downloads the chain again.': 3123,
 } as const
 
 /**
