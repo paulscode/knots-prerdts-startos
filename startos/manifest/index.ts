@@ -7,7 +7,7 @@ export const manifest = setupManifest({
   // accept any of them and a switch keeps the synced chain. The flavor itself
   // is the `#knotssha` prefix on the version in startos/versions/current.ts.
   id: 'bitcoind',
-  title: 'Bitcoin Knots SHA256',
+  title: 'Bitcoin Knots (SHA256)',
   license: 'MIT',
   donationUrl: null,
   packageRepo: 'https://github.com/paulscode/knots-sha256-startos',
