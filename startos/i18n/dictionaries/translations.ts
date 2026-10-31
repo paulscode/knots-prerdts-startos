@@ -450,6 +450,9 @@ export default {
     3121: 'Ruta de socket IPC',
     3122: 'Ruta de socket Unix para comunicación IPC con Bitcoin. Otros servicios pueden vincularse a este socket en su configuración de Docker.',
     3123: 'En un nodo podado, actívelo solo antes de que el nodo haya podado algo (al instalar). Activarlo después impide que el nodo arranque, porque el índice necesita bloques que ya no están; recupérelo con Reindexar blockchain, que vuelve a descargar la cadena.',
+    3124: 'Validación en segundo plano',
+    3125: 'Todos los bloques están validados',
+    3126: 'Validando bloques históricos: ${percentage}%',
   } satisfies LangDict,
   de_DE: {
     // main.ts
@@ -900,6 +903,9 @@ export default {
     3121: 'IPC-Socket-Pfad',
     3122: 'Unix-Socket-Pfad für IPC-Kommunikation mit Bitcoin. Andere Dienste können sich in ihrer Docker-Konfiguration an diesen Socket binden.',
     3123: 'Auf einem geprunten Knoten nur einschalten, bevor der Knoten etwas gelöscht hat (bei der Installation). Später eingeschaltet startet der Knoten nicht mehr, weil der Index Blöcke braucht, die nicht mehr vorhanden sind; Abhilfe schafft Blockchain neu indizieren, das die Kette erneut herunterlädt.',
+    3124: 'Hintergrundvalidierung',
+    3125: 'Alle Blöcke sind validiert',
+    3126: 'Historische Blöcke werden validiert: ${percentage}%',
   } satisfies LangDict,
   pl_PL: {
     // main.ts
@@ -1350,6 +1356,9 @@ export default {
     3121: 'Ścieżka gniazda IPC',
     3122: 'Ścieżka gniazda Unix do komunikacji IPC z Bitcoin. Inne usługi mogą powiązać się z tym gniazdem w swojej konfiguracji Docker.',
     3123: 'Na przyciętym węźle włącz to tylko, zanim węzeł cokolwiek przytnie (przy instalacji). Włączenie później uniemożliwia uruchomienie węzła, bo indeks potrzebuje bloków, których już nie ma; naprawa: Przeindeksuj blockchain, co ponownie pobiera łańcuch.',
+    3124: 'Walidacja w tle',
+    3125: 'Wszystkie bloki są zweryfikowane',
+    3126: 'Weryfikowanie historycznych bloków: ${percentage}%',
   } satisfies LangDict,
   fr_FR: {
     // main.ts
@@ -1800,5 +1809,8 @@ export default {
     3121: 'Chemin du socket IPC',
     3122: "Chemin du socket Unix pour la communication IPC avec Bitcoin. D'autres services peuvent se lier à ce socket dans leur configuration Docker.",
     3123: "Sur un nœud élagué, n'activez ceci qu'avant que le nœud ait élagué quoi que ce soit (à l'installation). L'activer plus tard empêche le nœud de démarrer, car l'index a besoin de blocs qui n'existent plus ; pour corriger, utilisez Réindexer la blockchain, qui retélécharge la chaîne.",
+    3124: 'Validation en arrière-plan',
+    3125: 'Tous les blocs sont validés',
+    3126: 'Validation des blocs historiques : ${percentage}%',
   } satisfies LangDict,
 }

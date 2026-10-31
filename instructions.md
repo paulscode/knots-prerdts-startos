@@ -75,7 +75,7 @@ Every action above acts on the currently selected wallet, so if you run more tha
 
 ### Advanced
 
-- **Download UTXO Snapshot (assumeutxo)** — pull a UTXO snapshot to short-cut IBD; the action hides itself once the node is fully synced. The URL must be a direct link to a `.dat` snapshot file, which can be one you serve from your own machine over the LAN.
+- **Download UTXO Snapshot (assumeutxo)** — pull a UTXO snapshot to short-cut IBD; the action hides itself once the node is fully synced. The node is usable at the snapshot's tip right away, but it still downloads and validates every block beneath it in the background; the **Background Validation** health check on the Dashboard shows that progress, and services such as Electrs wait for it to finish. The URL must be a direct link to a `.dat` snapshot file, which can be one you serve from your own machine over the LAN.
 - **Runtime Information** — current connection count, block height, sync progress, softfork state, and other runtime details at a glance.
 
 ## Limitations

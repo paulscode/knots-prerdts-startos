@@ -256,19 +256,20 @@ One task, and it exists only to report a failure that happens after the action t
 
 ## Health Checks
 
-Eight checks at most, and three of them can never report a failure: they describe the node's reachability posture rather than its health.
+Nine checks at most, and three of them can never report a failure: they describe the node's reachability posture rather than its health.
 
-| Check           | Displayed       | Probes                                                                                       | Grace       | Present                                    |
-| --------------- | --------------- | -------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------ |
-| `bitcoind`      | RPC             | Waits for `.cookie` to appear, then that the RPC port is listening                           | SDK default | always                                     |
-| `sync-progress` | Blockchain Sync | `getblockchaininfo` plus `getchaintips`, every 30 s (5 s while starting or failing)          | —           | always                                     |
-| `index-sync`    | Index Sync      | `getindexinfo`, plus `getblockchaininfo` only while an index is behind, on the same schedule | —           | always                                     |
-| `peers`         | Peers           | `getnetworkinfo`, on the same schedule                                                       | 5 minutes   | always                                     |
-| `i2pd`          | I2P             | i2pd's I2PControl `RouterInfo` on loopback                                                   | 5 minutes   | while I2P is enabled                       |
-| `i2p`           | I2P             | nothing — a `disabled` placeholder in place of the daemon check                              | —           | while I2P is off, or excluded by `onlynet` |
-| `tor`           | Tor             | Tor's installed and running state, and whether an onion address is published                 | —           | always                                     |
-| `clearnet`      | Clearnet        | Whether a non-onion address is published                                                     | —           | always                                     |
-| `proxy`         | RPC Proxy       | That the proxy's port is listening                                                           | —           | always                                     |
+| Check                   | Displayed             | Probes                                                                                                       | Grace       | Present                                    |
+| ----------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------ | ----------- | ------------------------------------------ |
+| `bitcoind`              | RPC                   | Waits for `.cookie` to appear, then that the RPC port is listening                                           | SDK default | always                                     |
+| `sync-progress`         | Blockchain Sync       | `getblockchaininfo` plus `getchaintips`, every 30 s (5 s while starting or failing)                          | —           | always                                     |
+| `background-validation` | Background Validation | `getchainstates`, plus `getblockheader` for the snapshot base while one is unvalidated, on the same schedule | —           | always                                     |
+| `index-sync`            | Index Sync            | `getindexinfo`, plus `getblockchaininfo` only while an index is behind, on the same schedule                 | —           | always                                     |
+| `peers`                 | Peers                 | `getnetworkinfo`, on the same schedule                                                                       | 5 minutes   | always                                     |
+| `i2pd`                  | I2P                   | i2pd's I2PControl `RouterInfo` on loopback                                                                   | 5 minutes   | while I2P is enabled                       |
+| `i2p`                   | I2P                   | nothing — a `disabled` placeholder in place of the daemon check                                              | —           | while I2P is off, or excluded by `onlynet` |
+| `tor`                   | Tor                   | Tor's installed and running state, and whether an onion address is published                                 | —           | always                                     |
+| `clearnet`              | Clearnet              | Whether a non-onion address is published                                                                     | —           | always                                     |
+| `proxy`                 | RPC Proxy             | That the proxy's port is listening                                                                           | —           | always                                     |
 
 **`bitcoind` failing** means the RPC port never opened. The cookie is deleted at the start of every run and recreated by bitcoind itself, so a check still waiting on it is one where bitcoind is not reaching the point of serving RPC — read the service logs for a startup or database error rather than looking for a networking fault.
 
@@ -277,6 +278,8 @@ Eight checks at most, and three of them can never report a failure: they describ
 Out of IBD it reads `loading`, "Catching up: N blocks behind", when the best header is two or more blocks ahead of the tip. bitcoind never sets `initialblockdownload` again once it clears, so without this a node that fell behind after its first sync read fully synced for as long as it stayed behind. One block ahead is a new block between its header and its connection, and stays synced.
 
 **`peers` fails when the node has no outbound peer** after its five-minute grace period, giving the inbound count in its message, and reads `disabled` while peer-to-peer networking is switched off. Inbound peers do not count, because a node can be reached without reaching anyone. A node cut off entirely receives no new headers either, so `sync-progress` keeps reading synced; this is the check that catches it.
+
+**`background-validation` covers a UTXO snapshot.** After Download UTXO Snapshot loads one, bitcoind clears `initialblockdownload` at the snapshot's tip, so `sync-progress` reads synced while the blocks beneath the snapshot are still being downloaded and validated by a second, background chainstate. The check reads `loading` with that chainstate's progress towards the snapshot's base height while `getchainstates` lists a snapshot chainstate that is not yet validated, and success otherwise, which is the only state a node that never loaded a snapshot is in. The `synced-true` oneshot, which sends the Sync Complete notification, waits for it as well. Dependents can wait on it by id, as Electrs 0.12.0:7 and later do for the `bitcoind` package; nothing that depends on this companion waits on it today. Ported from Bitcoin Core's package (31.2:1).
 
 **`index-sync` is separate from `sync-progress` because the indexes are.** `getindexinfo` lists only the indexes actually enabled, so the check reports `disabled` when there are none and success when every one of them sits at the tip — the normal state throughout IBD, where an index follows block connection rather than trailing it. It goes to `loading` when one falls behind, naming the furthest behind and its height as a percentage of the chain tip. The case it exists for is enabling an index on a node that is already synced: that starts a backfill from the first block, during which `getrawtransaction`, `getblockfilter`, and `gettxoutsetinfo` answer for only the part of the chain the index has reached, while `sync-progress` reports the node fully synced. An index that is behind is working, not broken, so that reads as `loading`; the only thing that reddens this check is bitcoind failing to answer or answering with something unreadable.
 
