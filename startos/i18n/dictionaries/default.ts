@@ -293,6 +293,7 @@ const dict = {
   'Not enough disk space': 1704,
   'Block Notify': 1705,
   'A shell command Bitcoin runs inside its container each time the best block changes. %s in the command is replaced by the block hash.': 1706,
+  'Must be a single line and cannot contain #': 1763,
   'Coinstats Index': 1707,
   'Enabling Coinstats Index reduces the time for the gettxoutsetinfo RPC to complete at the cost of using additional disk space': 1708,
   Wallet: 1709,

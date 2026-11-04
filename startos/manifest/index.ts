@@ -33,7 +33,7 @@ export const manifest = setupManifest({
             // bitcoin-${VERSION}-<host>.tar.gz, SHA256SUMS and SHA256SUMS.asc
             // from that release's GitHub Release page and verifies the
             // signature against the pinned maintainer key. See UPDATING.md.
-            VERSION: '31.1.knots-sha256.20261018',
+            VERSION: '31.2.knots-sha256.20261031',
           },
         },
       },
