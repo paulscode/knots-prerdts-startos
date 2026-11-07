@@ -1,6 +1,7 @@
 import { FileHelper, IMPOSSIBLE, VersionInfo, z } from '@start9labs/start-sdk'
 import { rm } from 'fs/promises'
 import { bitcoinConfFile, toBitcoinConf } from '../fileModels/bitcoin.conf'
+import { storeJson } from '../fileModels/store.json'
 
 /**
  * Reset all mempool settings to undefined so the new flavor's upstream
@@ -24,6 +25,25 @@ async function dropInheritedSoftwareExpiry(
   if (conf?.softwareexpiry === knots293SoftwareExpiry) {
     await bitcoinConfFile.merge(effects, { softwareexpiry: undefined })
   }
+}
+
+/**
+ * Bitcoin Knots SHA256 32.x raised the -datacarriercost default from 1 to 2. Installs
+ * up to 31.x wrote 1 into bitcoin.conf, which cannot be told apart from a deliberate
+ * choice, so a stored 1 becomes 2 once, on the first update to a 32.x package
+ * (decisions/0027, as decisions/0026 does for Umbrel; the release notes say how to set
+ * 1 again). The store.json flag makes it run once: a 1 set afterwards stays.
+ */
+async function raiseDatacarriercost32(
+  effects: Parameters<typeof bitcoinConfFile.merge>[0],
+) {
+  const store = await storeJson.read().once()
+  if (store?.datacarriercost32) return
+  const conf = await bitcoinConfFile.read().once()
+  if (conf?.datacarriercost === 1) {
+    await bitcoinConfFile.merge(effects, { datacarriercost: 2 })
+  }
+  await storeJson.merge(effects, { datacarriercost32: true })
 }
 
 const mempoolReset = {
@@ -121,6 +141,7 @@ export const current = VersionInfo.of({
   migrations: {
     up: async ({ effects }) => {
       await rewriteConfRaw(effects)
+      await raiseDatacarriercost32(effects)
     },
     down: IMPOSSIBLE,
     other: {
@@ -135,6 +156,7 @@ export const current = VersionInfo.of({
         up: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
           await dropInheritedSoftwareExpiry(effects)
+          await raiseDatacarriercost32(effects)
         },
         down: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
@@ -144,6 +166,7 @@ export const current = VersionInfo.of({
         up: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
           await dropInheritedSoftwareExpiry(effects)
+          await raiseDatacarriercost32(effects)
         },
         down: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
@@ -154,6 +177,7 @@ export const current = VersionInfo.of({
         up: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
           await dropInheritedSoftwareExpiry(effects)
+          await raiseDatacarriercost32(effects)
         },
         down: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
@@ -165,6 +189,7 @@ export const current = VersionInfo.of({
         up: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
           await dropInheritedSoftwareExpiry(effects)
+          await raiseDatacarriercost32(effects)
         },
         down: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
@@ -180,6 +205,7 @@ export const current = VersionInfo.of({
       ['^#knotsprerdts:29.3']: {
         up: async ({ effects }) => {
           await dropInheritedSoftwareExpiry(effects)
+          await raiseDatacarriercost32(effects)
         },
         down: async ({ effects }) => {
           await removeFeeEstimates()
@@ -194,6 +220,7 @@ export const current = VersionInfo.of({
       ['<=#knots:29.3:7']: {
         up: async ({ effects }) => {
           await dropInheritedSoftwareExpiry(effects)
+          await raiseDatacarriercost32(effects)
         },
       },
     },

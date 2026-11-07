@@ -216,7 +216,7 @@ export const diskUsage = utils.once(() => diskusage.check('/'))
 export const archivalMin = 900_000_000_000
 
 // Override defaults (diverging from upstream Bitcoin Knots)
-export const defaultDatacarriercost = 1
+export const defaultDatacarriercost = 2
 
 export const defaultDbcache = () =>
   Math.min(Math.floor((totalmem() * 0.25) / (1024 * 1024)), 5_120)
@@ -456,7 +456,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     max: 1000,
     step: 0.25,
     integer: false,
-    footnote: `${i18n('Default')}: 1`,
+    footnote: `${i18n('Default')}: 2`,
   }),
   acceptnonstddatacarrier: Value.triState({
     name: i18n('Accept Non-Standard Datacarrier'),

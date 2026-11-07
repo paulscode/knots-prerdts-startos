@@ -20,6 +20,8 @@ export const seedFiles = sdk.setupOnInit(async (effects, kind) => {
   await i2pdConfFile.merge(effects, {})
 
   if (kind === 'install') {
+    // A new install starts at the 32.x datacarriercost, so the one-time 1 -> 2 step never applies to it
+    await storeJson.merge(effects, { datacarriercost32: true })
     await bitcoinConfFile.merge(effects, {
       zmqEnabled: true,
       blockfilters: { blockfilterindex: true },
