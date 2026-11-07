@@ -453,7 +453,9 @@ export const fullConfigSpec = sdk.InputSpec.of({
     default: null,
     required: false,
     min: 0,
-    integer: true,
+    max: 1000,
+    step: 0.25,
+    integer: false,
     footnote: `${i18n('Default')}: 1`,
   }),
   acceptnonstddatacarrier: Value.triState({
@@ -480,7 +482,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
       'Relay transactions sending to unknown witness script versions',
     ),
     default: null,
-    footnote: `${i18n('Default')}: true`,
+    footnote: `${i18n('Default')}: false`,
   }),
   minrelaycoinblocks: Value.number({
     name: i18n('Min Relay Coin Blocks'),
@@ -694,7 +696,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     min: 0,
     integer: true,
     units: 'MiB',
-    footnote: `${i18n('Default')}: 100 to 2048 MiB, depending on RAM`,
+    footnote: `${i18n('Default')}: a quarter of RAM, at most 5120 MiB, set at install (bitcoind alone: 1024 MiB)`,
   }),
   dbbatchsize: Value.number({
     name: i18n('Database Batch'),
@@ -863,7 +865,7 @@ export const fullConfigSpec = sdk.InputSpec.of({
     required: false,
     min: minConnections,
     integer: true,
-    footnote: `${i18n('Default')}: 125`,
+    footnote: `${i18n('Default')}: 200`,
   }),
   blocksonly: Value.triState({
     name: i18n('Blocks Only'),
