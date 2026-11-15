@@ -135,7 +135,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
     return { cancel: false }
   })
 
-  const bitcoinArgs: string[] = [`-onion=${torSocks}`]
+  // StartOS runs the onion service for the peer interface (watchHosts writes its
+  // addresses as externalip) and Tor's SOCKS port is passed as -onion. bitcoind's
+  // own onion service needs Tor's control port, which nothing serves inside this
+  // container, so -listenonion only produced failed attempts; Core 32 logs each
+  // one as a warning. Turning it off changes nothing else: binds are explicit, and
+  // -onlynet=onion and private broadcast are satisfied by -onion.
+  const bitcoinArgs: string[] = [`-onion=${torSocks}`, '-listenonion=0']
 
   if (reindexBlockchain) {
     bitcoinArgs.push('-reindex')
