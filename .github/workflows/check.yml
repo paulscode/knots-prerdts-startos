@@ -14,7 +14,9 @@ jobs:
         with:
           node-version: 22
       - run: npm ci --no-audit --no-fund
-      - run: npm run check
+      # The same checks as the Makefile's TS_CHECK (there is no `npm run check` script).
+      - run: npx tsc --noEmit
+      - run: npm test
       - name: pinned key matches the Dockerfile and carries no secret material
         run: |
           set -e
