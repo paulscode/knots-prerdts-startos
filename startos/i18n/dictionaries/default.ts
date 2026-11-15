@@ -470,6 +470,8 @@ const dict = {
   'Background Validation': 3124,
   'Every block is validated': 3125,
   'Validating historical blocks: ${percentage}%': 3126,
+  'Bitcoin did not answer this check within a minute': 3127,
+  'The I2P router did not answer within a minute': 3128,
 } as const
 
 /**
