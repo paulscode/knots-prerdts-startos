@@ -11,6 +11,8 @@ export const shape = z.looseObject({
   selectedWallet: z.string().catch('coin'),
   reattachPeerOnions: z.boolean().catch(false),
   enableIpc: z.boolean().catch(false),
+  /** The one-time 32.x datacarriercost step (1 -> 2) has run, or this install started at 2 (decisions/0027). */
+  datacarriercost32: z.boolean().catch(false),
 })
 
 export const storeJson = FileHelper.json(

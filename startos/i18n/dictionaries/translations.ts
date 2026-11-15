@@ -454,6 +454,8 @@ export default {
     3124: 'Validación en segundo plano',
     3125: 'Todos los bloques están validados',
     3126: 'Validando bloques históricos: ${percentage}%',
+    3127: 'Bitcoin no respondió a esta comprobación en un minuto',
+    3128: 'El enrutador I2P no respondió en un minuto',
   } satisfies LangDict,
   de_DE: {
     // main.ts
@@ -908,6 +910,8 @@ export default {
     3124: 'Hintergrundvalidierung',
     3125: 'Alle Blöcke sind validiert',
     3126: 'Historische Blöcke werden validiert: ${percentage}%',
+    3127: 'Bitcoin hat auf diese Prüfung nicht innerhalb einer Minute geantwortet',
+    3128: 'Der I2P-Router hat nicht innerhalb einer Minute geantwortet',
   } satisfies LangDict,
   pl_PL: {
     // main.ts
@@ -1362,6 +1366,8 @@ export default {
     3124: 'Walidacja w tle',
     3125: 'Wszystkie bloki są zweryfikowane',
     3126: 'Weryfikowanie historycznych bloków: ${percentage}%',
+    3127: 'Bitcoin nie odpowiedział na to sprawdzenie w ciągu minuty',
+    3128: 'Router I2P nie odpowiedział w ciągu minuty',
   } satisfies LangDict,
   fr_FR: {
     // main.ts
@@ -1816,5 +1822,7 @@ export default {
     3124: 'Validation en arrière-plan',
     3125: 'Tous les blocs sont validés',
     3126: 'Validation des blocs historiques : ${percentage}%',
+    3127: "Bitcoin n'a pas répondu à cette vérification en une minute",
+    3128: "Le routeur I2P n'a pas répondu en une minute",
   } satisfies LangDict,
 }

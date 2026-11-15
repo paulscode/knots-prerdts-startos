@@ -1,6 +1,7 @@
 import { FileHelper, VersionInfo, z } from '@start9labs/start-sdk'
 import { rm } from 'fs/promises'
 import { bitcoinConfFile, toBitcoinConf } from '../fileModels/bitcoin.conf'
+import { storeJson } from '../fileModels/store.json'
 
 /**
  * Knots 29.3's built-in software expiry (2027-11-07). Earlier releases of this
@@ -21,7 +22,26 @@ async function dropInheritedSoftwareExpiry(
 }
 
 /**
- * This node is Bitcoin Core 31.x underneath, so its datadir carries two
+ * Bitcoin Knots SHA256 32.x raised the -datacarriercost default from 1 to 2. Installs
+ * up to 31.x wrote 1 into bitcoin.conf, which cannot be told apart from a deliberate
+ * choice, so a stored 1 becomes 2 once, on the first update to a 32.x package
+ * (decisions/0027, as in the drop-in package; the release notes say how to set 1
+ * again). The store.json flag makes it run once: a 1 set afterwards stays.
+ */
+async function raiseDatacarriercost32(
+  effects: Parameters<typeof bitcoinConfFile.merge>[0],
+) {
+  const store = await storeJson.read().once()
+  if (store?.datacarriercost32) return
+  const conf = await bitcoinConfFile.read().once()
+  if (conf?.datacarriercost === 1) {
+    await bitcoinConfFile.merge(effects, { datacarriercost: 2 })
+  }
+  await storeJson.merge(effects, { datacarriercost32: true })
+}
+
+/**
+ * This node is Bitcoin Core 32.x underneath, so its datadir carries two
  * things an older bitcoind refuses to read. Removing them is what the
  * official Core 31.x package does on its own downgrade path; both are
  * rebuilt by the destination binary.
@@ -63,18 +83,27 @@ async function rewriteConfRaw(
     )
 }
 
+const notes = [
+  'Bitcoin Knots SHA256 32.1 rc1 (32.1.knots-sha256.20261113rc1), a release candidate for testing, on Bitcoin Core 32.1. This is revision 0 of the 32.1 package. Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v32.1.knots-sha256.20261113rc1',
+  'Fixes Stop, updates and restarts that never finish. A status check that sent the node a request that never came back stayed at Starting from then on, and it also kept the service from stopping: the RPC proxy and I2P shut down, but the node itself was never asked to, so an update sat at Installing 80% and a restart of the server hung. Each check now gives up on a request after a minute and asks again, so it can no longer hold up a stop. This does not shorten the node\'s own shutdown, which still has its full 5 minutes to save its data.',
+  'Before updating to this version, press Stop and wait until it shows Stopped. If it does not stop within 10 minutes, or a status check has been stuck at Starting for a long time, the version you are running has this problem: restart the server, and update once it is back up. If the restart also hangs, turn the server off and on again. The node recovers from that, though its next start can take longer while it catches up on what it had not yet saved.',
+  'The Datacarrier Cost default is now 2: each byte of data counts as at least 2 virtual bytes, at admission to the mempool and for mining order, eviction and fee bumping. Earlier versions of this package wrote 1 into the settings at install, so a stored 1 becomes 2 once, on this update. To keep 1, set it again in Mempool Settings after the update; it then stays.',
+  'New spam filters, on by default: output hashes and keys that are all printable text, witness items a script drops without using them, and multisig keys that no signature proves now count as data. Payments to future witness versions are no longer relayed (Accept Unknown Witness is off by default).',
+  'Bitcoin Core 32.1 underneath, which allows up to 200 peer connections by default.',
+].join(' ')
+
 export const current = VersionInfo.of({
   // #knotsprerdts is this package's flavor and never changes (Datum (SHA256)
-  // Companion depends on >=#knotsprerdts:29.3:25). 31.2 is the Bitcoin Core base
+  // Companion depends on >=#knotsprerdts:29.3:25). 32.1 is the Bitcoin Core base
   // of the installed Bitcoin Knots SHA256 release; the trailing number is this
   // package's own revision.
-  version: '#knotsprerdts:31.2:0',
+  version: '#knotsprerdts:32.1:0',
   releaseNotes: {
-    en_US: `- Bitcoin Knots SHA256 31.2 (31.2.knots-sha256.20261031), on Bitcoin Core 31.2. This is revision 0 of the 31.2 package.\n- New spam filters, on by default: data hidden in pushes that are immediately dropped (bare envelopes), fake public keys that carry data (BPUB), and data in script branches that can never run. Counterparty transactions are rejected along with other token transactions under Reject Tokens.\n- The data carrier cost now also lowers a transaction's priority for mining and raises it for eviction, not only at admission to the mempool.\n- Bitcoin now runs Block Notify commands that contain \`=\` or \`;\` or start with \`[\` as entered, and settings added to bitcoin.conf by hand keep their values as written, as in Bitcoin Core's package 31.1:27. Block Notify can no longer contain \`#\`, and a command that did is removed.\n- Built on start-sdk 3.1.1.\n- Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v31.2.knots-sha256.20261031`,
-    es_ES: `- Bitcoin Knots SHA256 31.2 (31.2.knots-sha256.20261031), on Bitcoin Core 31.2. This is revision 0 of the 31.2 package.\n- New spam filters, on by default: data hidden in pushes that are immediately dropped (bare envelopes), fake public keys that carry data (BPUB), and data in script branches that can never run. Counterparty transactions are rejected along with other token transactions under Reject Tokens.\n- The data carrier cost now also lowers a transaction's priority for mining and raises it for eviction, not only at admission to the mempool.\n- Bitcoin now runs Block Notify commands that contain \`=\` or \`;\` or start with \`[\` as entered, and settings added to bitcoin.conf by hand keep their values as written, as in Bitcoin Core's package 31.1:27. Block Notify can no longer contain \`#\`, and a command that did is removed.\n- Built on start-sdk 3.1.1.\n- Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v31.2.knots-sha256.20261031`,
-    de_DE: `- Bitcoin Knots SHA256 31.2 (31.2.knots-sha256.20261031), on Bitcoin Core 31.2. This is revision 0 of the 31.2 package.\n- New spam filters, on by default: data hidden in pushes that are immediately dropped (bare envelopes), fake public keys that carry data (BPUB), and data in script branches that can never run. Counterparty transactions are rejected along with other token transactions under Reject Tokens.\n- The data carrier cost now also lowers a transaction's priority for mining and raises it for eviction, not only at admission to the mempool.\n- Bitcoin now runs Block Notify commands that contain \`=\` or \`;\` or start with \`[\` as entered, and settings added to bitcoin.conf by hand keep their values as written, as in Bitcoin Core's package 31.1:27. Block Notify can no longer contain \`#\`, and a command that did is removed.\n- Built on start-sdk 3.1.1.\n- Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v31.2.knots-sha256.20261031`,
-    pl_PL: `- Bitcoin Knots SHA256 31.2 (31.2.knots-sha256.20261031), on Bitcoin Core 31.2. This is revision 0 of the 31.2 package.\n- New spam filters, on by default: data hidden in pushes that are immediately dropped (bare envelopes), fake public keys that carry data (BPUB), and data in script branches that can never run. Counterparty transactions are rejected along with other token transactions under Reject Tokens.\n- The data carrier cost now also lowers a transaction's priority for mining and raises it for eviction, not only at admission to the mempool.\n- Bitcoin now runs Block Notify commands that contain \`=\` or \`;\` or start with \`[\` as entered, and settings added to bitcoin.conf by hand keep their values as written, as in Bitcoin Core's package 31.1:27. Block Notify can no longer contain \`#\`, and a command that did is removed.\n- Built on start-sdk 3.1.1.\n- Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v31.2.knots-sha256.20261031`,
-    fr_FR: `- Bitcoin Knots SHA256 31.2 (31.2.knots-sha256.20261031), on Bitcoin Core 31.2. This is revision 0 of the 31.2 package.\n- New spam filters, on by default: data hidden in pushes that are immediately dropped (bare envelopes), fake public keys that carry data (BPUB), and data in script branches that can never run. Counterparty transactions are rejected along with other token transactions under Reject Tokens.\n- The data carrier cost now also lowers a transaction's priority for mining and raises it for eviction, not only at admission to the mempool.\n- Bitcoin now runs Block Notify commands that contain \`=\` or \`;\` or start with \`[\` as entered, and settings added to bitcoin.conf by hand keep their values as written, as in Bitcoin Core's package 31.1:27. Block Notify can no longer contain \`#\`, and a command that did is removed.\n- Built on start-sdk 3.1.1.\n- Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v31.2.knots-sha256.20261031`,
+    en_US: notes,
+    es_ES: notes,
+    de_DE: notes,
+    pl_PL: notes,
+    fr_FR: notes,
   },
   migrations: {
     // From this package's own 29.3 releases: the same chain, so the datadir is
@@ -82,6 +111,7 @@ export const current = VersionInfo.of({
     up: async ({ effects }) => {
       await rewriteConfRaw(effects)
       await dropInheritedSoftwareExpiry(effects)
+      await raiseDatacarriercost32(effects)
     },
     // Back to a 29.3 release of this package: remove what Bitcoin Core 31 adds
     // that the older node refuses to read (both are rebuilt).
