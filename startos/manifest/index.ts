@@ -17,7 +17,7 @@ export const manifest = setupManifest({
   // StartOS 0.4.0.2, not the SDK's default, so the registry hides releases from
   // older servers. Every release from 2026-10-11 on targets 0.4.0.2.
   osVersion: '0.4.0.2',
-  volumes: ['main', 'i2pd'],
+  volumes: ['main', 'i2pd', 'public'],
   images: {
     bitcoind: {
       source: {
@@ -44,7 +44,7 @@ export const manifest = setupManifest({
     // v0.8.0 has both defects. Carried from knots-prerdts-startos.
     proxy: {
       source: {
-        dockerTag: 'ghcr.io/start9labs/btc-rpc-proxy:v0.8.2',
+        dockerTag: 'ghcr.io/start9labs/btc-rpc-proxy:v0.8.4',
       },
       arch: ['x86_64', 'aarch64', 'riscv64'],
     },
