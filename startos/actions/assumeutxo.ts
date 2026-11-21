@@ -4,8 +4,13 @@ import * as fs from 'fs/promises'
 import { SubContainer } from '@start9labs/start-sdk'
 import { manifest } from '../manifest'
 import { storeJson } from '../fileModels/store.json'
+import { bitcoinConfFile } from '../fileModels/bitcoin.conf'
+import { snapshotBlockedByIndex } from '../snapshotGuard'
 import { i18n } from '../i18n'
 const { Value } = sdk
+
+const snapshotBlockedMsg =
+  'Not available on a pruned node with the block filter or coin stats index on: the node would stop when background validation finishes (Bitcoin Core 32.1 bug #36939). Turn the index off first, or sync without a snapshot.'
 
 export const snapshotTempFile = `/tmp/snap/snapshot`
 const block_840_000 =
@@ -61,7 +66,11 @@ export const assumeutxo = sdk.Action.withInput(
           ? { disabled: i18n('Snapshot in use') }
           : fullySynced
             ? 'hidden'
-            : 'enabled',
+            : snapshotBlockedByIndex(
+                  await bitcoinConfFile.read().const(effects),
+                )
+              ? { disabled: i18n(snapshotBlockedMsg) }
+              : 'enabled',
     }
   },
 
@@ -73,6 +82,8 @@ export const assumeutxo = sdk.Action.withInput(
   async ({ effects, input }) => {
     if (assumeutxoSubc || assumeutxoPromise)
       throw new Error('already in progress')
+    if (snapshotBlockedByIndex(await bitcoinConfFile.read().once()))
+      throw new Error(i18n(snapshotBlockedMsg))
 
     assumeutxoSubc = await sdk.SubContainer.eager(
       effects,
