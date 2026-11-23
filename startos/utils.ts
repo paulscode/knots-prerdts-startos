@@ -63,6 +63,12 @@ export const rootDir = '/root/.bitcoin'
 export const ipcSocketPath = `unix:${rootDir}/ipc/bitcoin-core.sock`
 export const rpccookiefile = '.cookie'
 
+/** The volume dependents mount read-only for RPC (bitcoin-core-startos 31.2:4), holding copies bitcoind never touches. Mount the volume, never a file in it: each start replaces the copies. */
+export const rpcVolumeId = 'public'
+export const rpcCookieName = '.cookie'
+/** bitcoind's `prune` setting, `0` when unpruned (read by LND for assumechanvalid). */
+export const rpcPruneName = 'prune'
+
 export const i2pSamPort = 7656
 export const i2pUiPort = 7070
 export const i2pControlPort = 7650

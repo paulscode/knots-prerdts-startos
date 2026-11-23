@@ -267,7 +267,15 @@ export const current = VersionInfo.of({
   // (:25); Block Notify written raw (:27); Bitcoin Core 31.2 (31.2:0) and the
   // Background Validation health check electrs 0.12.0:7 requires (31.2:1). Host
   // ids, interface ids and ports are identical to Core's.
-  .satisfies('31.2:1')
-  .satisfies('30.3:16')
-  .satisfies('29.4:16')
-  .satisfies('28.4:29')
+  // 2026-11-20 (31.2:2, hotfix): Core's 31.2:4 publishes .cookie and prune in a
+  // `public` volume that dependents mount alone (electrs 0.12.1:1, lnd
+  // 0.21.8-beta:2 and mempool 3.3.2:7 require >=31.2:4 and mount it), and 31.2:5
+  // is btc-rpc-proxy 0.8.3, which refuses fetched blocks with repeated
+  // transactions. This package has both (proxy 0.8.4, as Core's 31.2:6), so it
+  // claims 31.2:5 and the other lines' releases with the same layout, as Core's
+  // 31.x list does. Core's 31.2:2 (start-sdk 4) and 31.2:3 (IPv6 listeners) are
+  // not dependent-facing.
+  .satisfies('31.2:5')
+  .satisfies('30.4:4')
+  .satisfies('29.5:4')
+  .satisfies('28.4:42')
