@@ -1,5 +1,5 @@
 import { FileHelper, T, utils, z } from '@start9labs/start-sdk'
-import * as diskusage from 'diskusage'
+import { statfs } from 'fs/promises'
 import { totalmem } from 'os'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
@@ -46,7 +46,8 @@ const iniBoolean = z
   .catch(undefined)
 
 export const minPrune = 550
-export const minConnections = 40
+// Peer-local dependents must retain eviction capacity under Core's 50% relay quota.
+export const minConnections = 53
 
 const validNets = ['ipv4', 'ipv6', 'onion', 'i2p'] as const
 const onlyNetOption = z.enum(validNets)
@@ -63,8 +64,11 @@ export const shape = z.looseObject({
   // Peers enforced
   listen: z.literal(true).catch(true),
   bind: z
-    .union([z.array(z.string()).transform((a) => a.at(-1)!), z.string()])
-    .catch(`0.0.0.0:${peerPortInternal}`),
+    .tuple([
+      z.literal(`0.0.0.0:${peerPortInternal}`),
+      z.literal(`[::]:${peerPortInternal}`),
+    ])
+    .catch([`0.0.0.0:${peerPortInternal}`, `[::]:${peerPortInternal}`]),
   whitebind: z
     .literal(`0.0.0.0:${peerPortLocal}`)
     .catch(`0.0.0.0:${peerPortLocal}`),
@@ -212,7 +216,10 @@ function stringifyPrimitives(a: unknown): any {
 
 const { InputSpec, Value, Variants, List } = sdk
 
-export const diskUsage = utils.once(() => diskusage.check('/'))
+export const diskUsage = utils.once(async () => {
+  const { blocks, bsize } = await statfs('/')
+  return { total: blocks * bsize }
+})
 export const archivalMin = 900_000_000_000
 
 /**
@@ -1202,7 +1209,7 @@ function formToFile(
     // Enforced fields
     rpccookiefile: '.cookie',
     listen: true,
-    bind: `0.0.0.0:${peerPortInternal}`,
+    bind: [`0.0.0.0:${peerPortInternal}`, `[::]:${peerPortInternal}`],
     whitebind: `0.0.0.0:${peerPortLocal}`,
     deprecatedrpc: 'create_bdb',
     rpcauth: raw?.rpcauth?.filter((a) => !!a) as string[] | undefined,

@@ -1,5 +1,5 @@
 import { healthFns, TOML } from '@start9labs/start-sdk'
-import { access, rm, writeFile } from 'fs/promises'
+import { access, readFile, rename, rm, writeFile } from 'fs/promises'
 import { request } from 'node:https'
 import { socksHostId, socksPort } from 'tor-startos/startos/utils'
 import { bitcoinConfFile } from './fileModels/bitcoin.conf'
@@ -19,8 +19,11 @@ import {
   i2pControlPort,
   rootDir,
   rpccookiefile,
+  rpcCookieName,
   rpcPort,
   rpcPortLocal,
+  rpcPruneName,
+  rpcVolumeId,
   ipcSocketPath,
 } from './utils'
 
@@ -163,11 +166,27 @@ export const main = sdk.setupMain(async ({ effects }) => {
 
   const rpcCookiePath = `${rootDir}/${rpccookiefile}`
 
-  // remove cookie file
-  await rm(`${bitcoindSub.rootfs}${rpcCookiePath}`, {
-    force: true,
-    recursive: true,
-  })
+  // Dependents built against bitcoin-core-startos 31.2:4 and later (electrs
+  // 0.12.1:1, lnd 0.21.8-beta:2, mempool 3.3.2:7) mount only the `public` volume
+  // and read .cookie and prune there, instead of mounting all of main (which
+  // exposed the wallets). bitcoind's own main/.cookie is unchanged, for
+  // bitcoin-cli, the actions, the proxy and older dependents. The copies are
+  // written through a temp file and a rename once bitcoind is ready
+  // (publish-rpc below) and removed at every start, so a missing copy still
+  // means Bitcoin is down.
+  const publish = async (name: string, data: string, mode?: number) => {
+    const path = sdk.volumes[rpcVolumeId].subpath(name)
+    await writeFile(`${path}.tmp`, data, { mode })
+    await rename(`${path}.tmp`, path)
+  }
+
+  // remove the cookie and its published copy
+  for (const path of [
+    `${bitcoindSub.rootfs}${rpcCookiePath}`,
+    sdk.volumes[rpcVolumeId].subpath(rpcCookieName),
+  ]) {
+    await rm(path, { force: true, recursive: true })
+  }
 
   /**
    * One read-only bitcoin-cli call for the health checks below, parsed. Every
@@ -426,6 +445,21 @@ export const main = sdk.setupMain(async ({ effects }) => {
             message: i18n('Bitcoin did not answer this check within a minute'),
           }),
         ),
+      },
+      requires: ['bitcoind'],
+    })
+    .addOneshot('publish-rpc', {
+      subcontainer: null,
+      exec: {
+        fn: async () => {
+          await publish(
+            rpcCookieName,
+            await readFile(`${bitcoindSub.rootfs}${rpcCookiePath}`, 'utf8'),
+            0o600,
+          )
+          await publish(rpcPruneName, String(bitcoinConf.prune ?? 0))
+          return null
+        },
       },
       requires: ['bitcoind'],
     })

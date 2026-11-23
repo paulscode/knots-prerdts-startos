@@ -118,7 +118,7 @@ export default {
     1005: 'Descarga en progreso...',
     1006: 'Instantánea en uso',
     1007: 'Descarga de instantánea en progreso. Tras una descarga exitosa, la instantánea se cargará como el chainstate activo y se descargarán y verificarán los bloques entre la altura de bloque de la instantánea y la punta. Los bloques desde génesis hasta la altura de bloque de la instantánea continuarán verificándose en segundo plano. Una vez que el IBD alcance la altura de la instantánea, la cadena habrá sido completamente validada',
-    1008: 'Debe ser una URL http(s) que termine en .dat',
+    1008: 'Debe ser una URL https que termine en .dat',
     1009: 'El intento anterior de descargar la instantánea falló: ${error}',
 
     // actions/runtimeInfo.ts
@@ -456,6 +456,7 @@ export default {
     3126: 'Validando bloques históricos: ${percentage}%',
     3127: 'Bitcoin no respondió a esta comprobación en un minuto',
     3128: 'El enrutador I2P no respondió en un minuto',
+    3129: "No disponible en un nodo podado con el índice de filtros de bloques o de estadísticas de monedas activado: el nodo se detendría al terminar la validación en segundo plano (error #36939 de Bitcoin Core 32.1). Desactive primero el índice o sincronice sin instantánea.",
   } satisfies LangDict,
   de_DE: {
     // main.ts
@@ -574,7 +575,7 @@ export default {
     1005: 'Download läuft...',
     1006: 'Snapshot in Verwendung',
     1007: 'Snapshot-Download läuft. Nach erfolgreichem Download wird der Snapshot als aktiver Chainstate geladen und Blöcke zwischen der Snapshot-Blockhöhe und der Spitze werden heruntergeladen und verifiziert. Blöcke von Genesis bis zur Snapshot-Blockhöhe werden weiterhin im Hintergrund verifiziert. Sobald die IBD die Snapshot-Höhe erreicht, wurde die Kette vollständig validiert',
-    1008: 'Muss eine http(s)-URL sein, die auf .dat endet',
+    1008: 'Muss eine https-URL sein, die auf .dat endet',
     1009: 'Der vorherige Versuch, den Snapshot herunterzuladen, ist fehlgeschlagen: ${error}',
 
     // actions/runtimeInfo.ts
@@ -912,6 +913,7 @@ export default {
     3126: 'Historische Blöcke werden validiert: ${percentage}%',
     3127: 'Bitcoin hat auf diese Prüfung nicht innerhalb einer Minute geantwortet',
     3128: 'Der I2P-Router hat nicht innerhalb einer Minute geantwortet',
+    3129: "Nicht verfügbar auf einem gekürzten (pruned) Knoten mit aktiviertem Blockfilter- oder Coinstats-Index: Der Knoten würde nach Abschluss der Hintergrundvalidierung anhalten (Fehler #36939 in Bitcoin Core 32.1). Schalten Sie zuerst den Index aus oder synchronisieren Sie ohne Snapshot.",
   } satisfies LangDict,
   pl_PL: {
     // main.ts
@@ -1030,7 +1032,7 @@ export default {
     1005: 'Pobieranie w toku...',
     1006: 'Migawka w użyciu',
     1007: 'Pobieranie migawki w toku. Po pomyślnym pobraniu migawka zostanie załadowana jako aktywny chainstate, a bloki między wysokością bloku migawki a szczytem zostaną pobrane i zweryfikowane. Bloki od genezy do wysokości bloku migawki będą nadal weryfikowane w tle. Gdy IBD dogoni wysokość migawki, łańcuch zostanie w pełni zwalidowany',
-    1008: 'Musi być adresem URL http(s) kończącym się na .dat',
+    1008: 'Musi być adresem URL https kończącym się na .dat',
     1009: 'Poprzednia próba pobrania migawki nie powiodła się: ${error}',
 
     // actions/runtimeInfo.ts
@@ -1368,6 +1370,7 @@ export default {
     3126: 'Weryfikowanie historycznych bloków: ${percentage}%',
     3127: 'Bitcoin nie odpowiedział na to sprawdzenie w ciągu minuty',
     3128: 'Router I2P nie odpowiedział w ciągu minuty',
+    3129: "Niedostępne na przyciętym węźle z włączonym indeksem filtrów bloków lub statystyk monet: węzeł zatrzymałby się po zakończeniu walidacji w tle (błąd #36939 w Bitcoin Core 32.1). Najpierw wyłącz indeks lub synchronizuj bez migawki.",
   } satisfies LangDict,
   fr_FR: {
     // main.ts
@@ -1486,7 +1489,7 @@ export default {
     1005: 'Téléchargement en cours...',
     1006: "Instantané en cours d'utilisation",
     1007: "Téléchargement d'instantané en cours. Après un téléchargement réussi, l'instantané sera chargé en tant que chainstate actif et les blocs entre la hauteur de bloc de l'instantané et le sommet seront téléchargés et vérifiés. Les blocs de la genèse à la hauteur de bloc de l'instantané continueront d'\u00eatre vérifiés en arrière-plan. Une fois que l'IBD rattrape la hauteur de l'instantané, la chaîne aura été entièrement validée",
-    1008: 'Doit être une URL http(s) se terminant par .dat',
+    1008: 'Doit être une URL https se terminant par .dat',
     1009: "La tentative précédente de téléchargement de l'instantané a échoué : ${error}",
 
     // actions/runtimeInfo.ts
@@ -1824,5 +1827,6 @@ export default {
     3126: 'Validation des blocs historiques : ${percentage}%',
     3127: "Bitcoin n'a pas répondu à cette vérification en une minute",
     3128: "Le routeur I2P n'a pas répondu en une minute",
+    3129: "Indisponible sur un nœud élagué avec l'index des filtres de blocs ou des statistiques de pièces activé : le nœud s'arrêterait à la fin de la validation en arrière-plan (bogue #36939 de Bitcoin Core 32.1). Désactivez d'abord l'index ou synchronisez sans instantané.",
   } satisfies LangDict,
 }

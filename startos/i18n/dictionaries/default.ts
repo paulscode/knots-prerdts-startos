@@ -119,7 +119,7 @@ const dict = {
   'Download in progress...': 1005,
   'Snapshot in use': 1006,
   'Snapshot download in progress. Upon successful download the snapshot will be loaded as the active chainstate and any blocks between the snapshot blockheight and tip will be downloaded and verified. Blocks from genesis to the snapshot blockheight will continue to be verfied in the background. Once the IBD catches up to the snapshot height the chain will have been fully validated': 1007,
-  'Must be an http(s) URL ending in .dat': 1008,
+  'Must be an https URL ending in .dat': 1008,
   'Previous attempt to download Snapshot failed: ${error}': 1009,
 
   // actions/runtimeInfo.ts
@@ -472,6 +472,7 @@ const dict = {
   'Validating historical blocks: ${percentage}%': 3126,
   'Bitcoin did not answer this check within a minute': 3127,
   'The I2P router did not answer within a minute': 3128,
+  'Not available on a pruned node with the block filter or coin stats index on: the node would stop when background validation finishes (Bitcoin Core 32.1 bug #36939). Turn the index off first, or sync without a snapshot.': 3129,
 } as const
 
 /**
