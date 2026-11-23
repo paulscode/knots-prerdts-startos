@@ -125,13 +125,15 @@ async function rewriteConfRaw(
 }
 
 const notes = [
-  'Bitcoin Knots SHA256 32.1 rc1 (32.1.knots-sha256.20261113rc1), a release candidate for testing, on Bitcoin Core 32.1. This is revision 0 of the 32.1 package. Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v32.1.knots-sha256.20261113rc1',
+  'Bitcoin Knots SHA256 32.1 (32.1.knots-sha256.20261113) on Bitcoin Core 32.1. It replaces the 31.x line: there will be no further 31.x release. This is revision 1 of the 32.1 package. Full release notes: https://github.com/paulscode/knots-sha256/releases/tag/v32.1.knots-sha256.20261113',
   "Fixes Stop, updates and restarts that never finish. A status check that sent the node a request that never came back stayed at Starting from then on, and it also kept the service from stopping: the RPC proxy and I2P shut down, but the node itself was never asked to, so an update sat at Installing 80% and a restart of the server hung. Each check now gives up on a request after a minute and asks again, so it can no longer hold up a stop. This does not shorten the node's own shutdown, which still has its full 5 minutes to save its data.",
   'Before updating to this version, press Stop and wait until it shows Stopped. If it does not stop within 10 minutes, or a status check has been stuck at Starting for a long time, the version you are running has this problem: restart the server, and update once it is back up. If the restart also hangs, turn the server off and on again. The node recovers from that, though its next start can take longer while it catches up on what it had not yet saved.',
   'The Datacarrier Cost default is now 2: each byte of data counts as at least 2 virtual bytes, at admission to the mempool and for mining order, eviction and fee bumping. Earlier versions of this package wrote 1 into the settings at install, so a stored 1 becomes 2 once, on this update. To keep 1, set it again in Mempool Settings after the update; it then stays.',
   'New spam filters, on by default: output hashes and keys that are all printable text, witness items a script drops without using them, and multisig keys that no signature proves now count as data. Payments to future witness versions are no longer relayed (Accept Unknown Witness is off by default).',
-  'Bitcoin Core 32.1 underneath. Maximum Connections now defaults to 200 on a new install; a value already saved in Peer Settings is kept.',
-  "Stands in for Bitcoin Core's package 31.2:1, as revision 31.2:1 of this package did, so services that require it, such as Electrs 0.12.0:7, keep working.",
+  'Bitcoin Core 32.1 underneath. Maximum Connections now defaults to 200 on a new install; a value already saved in Peer Settings is kept, except that the minimum is now 53 (a lower saved value is raised to 53), so services that connect to the node directly, such as Electrs, still find a free slot.',
+  'Bitcoin now also accepts peers and ZMQ connections over IPv6. It no longer tries to set up its own Tor onion service, which only produced a warning every few minutes: StartOS serves the onion address, and incoming Tor peers work as before.',
+  'Download UTXO Snapshot accepts https links only and needs 11 GiB of free space. It is not offered on a pruned node with the Block Filter Index or Coinstats Index on: in that combination Bitcoin Core 32.1, and so this node, stops when the snapshot finishes validating (https://github.com/bitcoin/bitcoin/issues/36939). Turn the index off first, or sync without a snapshot.',
+  "Keeps the shared RPC login volume and RPC proxy 0.8.4 from revision 31.2:2. Stands in for Bitcoin Core's package 32.1:2 and 31.2:5, so services that require them, such as Electrs 0.12.1:1, LND 0.21.8-beta:2 and Mempool 3.3.2:7, keep working.",
   "Switch to it from Bitcoin Core, Bitcoin Knots (pre-RDTS), or Bitcoin Knots (Legacy) as carried over from StartOS 0.3.5.1, and keep your synced chain. Switching from Bitcoin Core resets the mempool settings so this node's policy defaults apply. Bitcoin Knots (RDTS) follows a different chain and can be switched neither to nor from.",
   'Switching back to Bitcoin Core 30 or older, or to Bitcoin Knots (pre-RDTS), removes the fee estimates, and for Bitcoin Core 29 or older and Bitcoin Knots (pre-RDTS) also the coinstats index, because the older node cannot read them; both are rebuilt.',
 ].join(' ')
@@ -142,7 +144,7 @@ export const current = VersionInfo.of({
   // Core base of the installed release; the Knots SHA256 series date lives in
   // the VERSION build-arg in startos/manifest/index.ts, not here. The trailing
   // number is this package's own revision and bumps on every wrapper release.
-  version: '#knotssha:32.1:0',
+  version: '#knotssha:32.1:1',
   releaseNotes: {
     en_US: notes,
     es_ES: notes,
@@ -164,8 +166,8 @@ export const current = VersionInfo.of({
       // binary cannot read.
       // Newest first: given a version range rather than an exact target, the SDK's
       // version graph takes the first matching edge, and the gentlest cleanup must win.
-      // Bitcoin Core 32: no StartOS package yet (2026-11-15); the key is here so a later
-      // one can be switched to and from. Same major as this node: nothing to clean up.
+      // Bitcoin Core 32 (Start9's 32.x line, 32.1:0 from 2026-11-19). Same major as this
+      // node: nothing to clean up.
       ['^32']: {
         up: async ({ effects }) => {
           await bitcoinConfFile.merge(effects, mempoolReset)
@@ -275,6 +277,11 @@ export const current = VersionInfo.of({
   // claims 31.2:5 and the other lines' releases with the same layout, as Core's
   // 31.x list does. Core's 31.2:2 (start-sdk 4) and 31.2:3 (IPv6 listeners) are
   // not dependent-facing.
+  // 2026-11-23 (32.1:1): Core's 32.x is at 32.1:2 (32.1:0 = Core 32.1 base and the
+  // 53-connection floor, :1 = snapshot download bounds + proxy 0.8.4, :2 = -listenonion=0);
+  // this package has all of them and Core's 31.2:3 IPv6 listeners, so it claims 32.1:2.
+  // Core's 32.x migration rework (ce11a3d) is about its own version history, not dependents.
+  .satisfies('32.1:2')
   .satisfies('31.2:5')
   .satisfies('30.4:4')
   .satisfies('29.5:4')
