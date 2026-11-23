@@ -7,6 +7,13 @@ import { storeJson } from '../fileModels/store.json'
 import { bitcoinConfFile } from '../fileModels/bitcoin.conf'
 import { snapshotBlockedByIndex } from '../snapshotGuard'
 import { i18n } from '../i18n'
+
+// Compile-time tie between the guard and the real form shape (a top-level blockfilterindex key once made the guard
+// miss pruned + block filter index): tsc fails here if bitcoinConfFile.read() stops carrying these keys. Never called.
+export const _snapshotGuardKeys = async () => {
+  const c = await bitcoinConfFile.read().once()
+  return c && [c.prune, c.coinstatsindex, c.blockfilters?.blockfilterindex]
+}
 const { Value } = sdk
 
 const snapshotBlockedMsg =
